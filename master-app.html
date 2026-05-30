@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskBoard — Master</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f14;--surf:#161920;--surf2:#1e2230;--bdr:#2a2f42;--blue:#5b8af5;--orange:#f5a623;--green:#4ecb71;--red:#f55b5b;--tx:#e8eaf2;--tx2:#8b92b3;--r:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh;}
+.overlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.spinner{width:38px;height:38px;border:3px solid var(--bdr);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ov-msg{font-family:'Syne',sans-serif;font-size:.95rem;color:var(--tx2);}
+.overlay.hidden{display:none;}
+.err-box{background:var(--surf);border:1px solid var(--red);border-radius:14px;padding:26px;max-width:440px;width:90%;text-align:center;}
+.err-box h2{font-family:'Syne',sans-serif;color:var(--red);margin-bottom:10px;}
+.err-box p{color:var(--tx2);font-size:.86rem;line-height:1.6;}
+.err-box a{color:var(--blue);}
+header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;letter-spacing:-.03em;}
+.logo span{color:var(--blue);}
+.logo small{font-size:.62rem;color:var(--tx2);font-weight:400;font-family:'DM Mono',monospace;margin-left:6px;}
+.hdr-r{display:flex;gap:8px;align-items:center;}
+.pill{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 12px;font-size:.76rem;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+.dot.off{background:var(--red);}
+.dot.syncing{background:var(--orange);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{display:flex;gap:2px;padding:12px 24px 0;background:var(--surf);border-bottom:1px solid var(--bdr);}
+.tab{padding:8px 16px;border-radius:7px 7px 0 0;border:1px solid transparent;border-bottom:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--tx2);transition:all .2s;}
+.tab.on{background:var(--bg);color:var(--tx);border-color:var(--bdr);}
+.tab:hover:not(.on){color:var(--tx);}
+main{padding:20px 24px;}
+.sec{display:none;}.sec.on{display:block;}
+.btn{padding:7px 15px;border-radius:7px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;transition:all .18s;}
+.bp{background:var(--blue);color:#fff;}.bp:hover{background:#3a6de0;}
+.bs{background:var(--surf2);color:var(--tx);border:1px solid var(--bdr);}.bs:hover{border-color:var(--blue);color:var(--blue);}
+.bd{background:var(--red);color:#fff;}
+.bg{background:var(--green);color:#000;}.bg:hover{background:#38b55a;}
+.sm{padding:4px 11px;font-size:.76rem;}
+.xs{padding:2px 8px;font-size:.72rem;}
+input[type=text],select,textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--tx);border-radius:7px;padding:7px 11px;font-family:'DM Sans',sans-serif;font-size:.86rem;outline:none;width:100%;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+select option{background:var(--surf2);}
+input[type=file]{display:none;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.sec-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;}
+.sec-sub{color:var(--tx2);font-size:.82rem;margin-top:2px;}
+hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
+.bscroll{overflow-x:auto;}
+.board{display:grid;gap:12px;min-width:820px;}
+.col{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;}
+.col-bar{height:3px;}
+.col-hdr{padding:11px 13px 9px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+.col-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.93rem;}
+.col-score{font-family:'DM Mono',monospace;font-size:1.25rem;padding:1px 9px;border-radius:5px;background:var(--surf2);}
+.col-body{padding:11px 13px;display:flex;flex-direction:column;gap:11px;}
+.stitle{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--tx2);margin-bottom:6px;}
+.tr{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr);}
+.tr:last-child{border-bottom:none;}
+.chk{width:16px;height:16px;border-radius:3px;border:2px solid var(--bdr);appearance:none;cursor:pointer;position:relative;flex-shrink:0;transition:all .15s;}
+.chk:checked{background:var(--green);border-color:var(--green);}
+.chk:checked::after{content:'✓';position:absolute;top:-2px;left:1px;color:#000;font-size:.7rem;font-weight:700;}
+.tl{font-size:.82rem;flex:1;}
+.tl.done{text-decoration:line-through;color:var(--tx2);}
+.tv{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--tx2);}
+.arow{display:flex;gap:7px;}.arow select{flex:1;}
+.satags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.satag{padding:2px 9px;border-radius:4px;font-size:.74rem;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;gap:4px;}
+.satag button{background:none;border:none;color:var(--tx2);cursor:pointer;font-size:.8rem;line-height:1;padding:0 2px;}
+.satag button:hover{color:var(--red);}
+.nta{font-size:.81rem;min-height:54px;resize:vertical;}
+.pgrid{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.pthumb{width:52px;height:52px;border-radius:5px;object-fit:cover;border:1px solid var(--bdr);cursor:pointer;}
+.col-ft{background:var(--surf2);border-top:1px solid var(--bdr);padding:8px 13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.ft-areas{font-size:.74rem;color:var(--tx2);}
+.sbadge{font-size:.7rem;background:rgba(78,203,113,.15);color:var(--green);border:1px solid var(--green);border-radius:4px;padding:1px 7px;}
+.ngrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:660px;}
+.nrow{display:flex;gap:7px;align-items:center;}
+.nlbl{font-family:'DM Mono',monospace;font-size:.76rem;color:var(--tx2);width:26px;flex-shrink:0;}
+.addrow{display:flex;gap:7px;max-width:390px;margin-top:9px;}
+.tlist{display:flex;flex-direction:column;gap:4px;margin-top:9px;max-width:490px;}
+.tmrow{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:6px 11px;display:flex;justify-content:space-between;align-items:center;font-size:.84rem;}
+.atags{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+.atag{background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;font-size:.79rem;display:flex;align-items:center;gap:6px;}
+.atag button{background:none;border:none;cursor:pointer;font-size:.88rem;}
+.scard{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:14px;}
+.sum table{border-collapse:collapse;width:100%;min-width:400px;}
+.sum th,.sum td{padding:7px 11px;font-size:.8rem;border-bottom:1px solid var(--bdr);}
+.sum th{color:var(--tx2);font-weight:500;text-align:left;}
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:800;align-items:center;justify-content:center;}
+.mbg.on{display:flex;}
+.mbox{background:var(--surf);border:1px solid var(--bdr);border-radius:13px;padding:24px;max-width:440px;width:90%;}
+.mbox h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:13px;}
+.mact{display:flex;gap:7px;justify-content:flex-end;margin-top:13px;}
+.ssimg{width:100%;border-radius:7px;margin-top:11px;border:1px solid var(--bdr);max-height:380px;object-fit:contain;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surf);border:1px solid var(--blue);border-radius:9px;padding:10px 16px;font-size:.84rem;color:var(--tx);z-index:9999;transform:translateY(70px);opacity:0;transition:all .3s;}
+.toast.on{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="ov-load">
+  <div class="spinner"></div>
+  <div class="ov-msg" id="ov-msg">Loading Firebase…</div>
+</div>
+<div class="overlay hidden" id="ov-err">
+  <div class="err-box">
+    <h2>⚠️ Connection Error</h2>
+    <p id="err-msg">Could not connect.</p>
+    <p style="margin-top:10px;"><a href="javascript:location.reload()">Reload to retry</a></p>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Task<span>Board</span><small>MASTER</small></div>
+  <div class="hdr-r">
+    <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
+    <button class="btn bs sm" onclick="goTab('sync')">Share Companion ↗</button>
+  </div>
+</header>
+<div class="tabs">
+  <div class="tab on"  onclick="goTab('board')">📋 Board</div>
+  <div class="tab"     onclick="goTab('setup')">⚙️ Setup</div>
+  <div class="tab"     onclick="goTab('sync')">🔄 Sync &amp; Share</div>
+</div>
+
+<main>
+  <div id="sec-board" class="sec on">
+    <div class="sec-hdr">
+      <div><div class="sec-title">Daily Task Board</div><div class="sec-sub" id="bd-date"></div></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn bs sm" onclick="resetAll()">↺ Reset All</button>
+        <button class="btn bg sm" onclick="ssAll()">📸 Screenshot All</button>
+      </div>
+    </div>
+    <div class="bscroll"><div class="board" id="board"></div></div>
+  </div>
+
+  <div id="sec-setup" class="sec">
+    <div class="sec-title" style="margin-bottom:20px;">Setup &amp; Configuration</div>
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:8px;">👥 Colleague Names</h3>
+    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:11px;">These names appear in the Companion App dropdown.</p>
+    <div class="ngrid" id="ngrid"></div>
+    <button class="btn bp sm" style="margin-top:11px;" onclick="saveNames()">Save Names</button>
+    <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:6px;">✅ Master Task List</h3>
+    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:9px;">Tasks appear in every colleague column.</p>
+    <div class="addrow">
+      <input type="text" id="new-task" placeholder="New task…" onkeydown="if(event.key==='Enter')addTask()">
+      <button class="btn bp sm" onclick="addTask()">Add</button>
+    </div>
+    <div class="tlist" id="tlist"></div>
+    <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:6px;">🗂️ Areas Worked</h3>
+    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:9px;">Options available in the area dropdown.</p>
+    <div class="addrow">
+      <input type="text" id="new-area" placeholder="New area…" onkeydown="if(event.key==='Enter')addArea()">
+      <button class="btn bp sm" onclick="addArea()">Add</button>
+    </div>
+    <div class="atags" id="atags"></div>
+  </div>
+
+  <div id="sec-sync" class="sec">
+    <div class="sec-title" style="margin-bottom:16px;">Sync &amp; Share</div>
+    <div class="scard">
+      <div style="font-weight:600;font-size:.9rem;margin-bottom:4px;">🔥 Firebase Connected</div>
+      <div style="font-size:.81rem;color:var(--tx2);">Project: <strong style="color:var(--tx)">gm-daily-task-manager</strong> &nbsp;·&nbsp; Europe West 1 &nbsp;·&nbsp; Live sync</div>
+    </div>
+    <div class="scard">
+      <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">📱 Share Companion App</div>
+      <p style="font-size:.81rem;color:var(--tx2);margin-bottom:10px;">Send the <code style="background:var(--surf2);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;color:var(--tx)">companion-app.html</code> file to colleagues. Firebase is already configured — they open it, pick their name, and start logging.</p>
+      <div style="background:rgba(78,203,113,.08);border:1px solid var(--green);border-radius:7px;padding:11px;font-size:.83rem;color:var(--green);">✅ No setup needed for colleagues — just share the file.</div>
+    </div>
+    <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:11px;">📸 Screenshot Columns</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:9px;" id="ss-btns"></div>
+    <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:9px;">📊 Today's Summary</h3>
+    <div class="sum" id="sum"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="mbg" id="m-ss"><div class="mbox" style="max-width:560px;">
+  <h3 id="m-ss-title">Screenshot</h3>
+  <img id="m-ss-img" class="ssimg" src="" alt="">
+  <div class="mact">
+    <button class="btn bp sm" onclick="dlSS()">⬇ Download</button>
+    <button class="btn bs sm" onclick="closeM('m-ss')">Close</button>
+  </div>
+</div></div>
+
+<div class="mbg" id="m-et"><div class="mbox">
+  <h3>Edit Task</h3>
+  <input type="text" id="et-inp" placeholder="Task name…">
+  <div class="mact">
+    <button class="btn bp sm" onclick="saveET()">Save</button>
+    <button class="btn bs sm" onclick="closeM('m-et')">Cancel</button>
+  </div>
+</div></div>
+
+<div class="mbg" id="m-ea"><div class="mbox">
+  <h3>Edit Area</h3>
+  <input type="text" id="ea-inp" placeholder="Area name…">
+  <div class="mact">
+    <button class="btn bp sm" onclick="saveEA()">Save</button>
+    <button class="btn bs sm" onclick="closeM('m-ea')">Cancel</button>
+  </div>
+</div></div>
+
+<div class="mbg" id="m-ph"><div class="mbox" style="max-width:560px;">
+  <h3>Photo</h3>
+  <img id="m-ph-img" class="ssimg" src="" alt="">
+  <div class="mact"><button class="btn bs sm" onclick="closeM('m-ph')">Close</button></div>
+</div></div>
+
+<script>
+var FB={
+  apiKey:"AIzaSyCVJHazSMLcMGbBb6erP0TzfuF1_SGbVT0",
+  authDomain:"gm-daily-task-manager.firebaseapp.com",
+  databaseURL:"https://gm-daily-task-manager-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"gm-daily-task-manager",
+  storageBucket:"gm-daily-task-manager.firebasestorage.app",
+  messagingSenderId:"1044732093775",
+  appId:"1:1044732093775:web:1cd95287c088beb045513a"
+};
+var COLORS=['#5b8af5','#f5a623','#4ecb71','#e85b9a','#a78bfa','#fb923c'];
+var DB='taskboard';
+var db,ref,state=null;
+
+// ── index maps: ci -> area index, for remove buttons ──────────
+// (avoid encoding area names in onclick — use data-attributes instead)
+
+function ld(src,ok,fail){
+  var s=document.createElement('script');s.src=src;s.onload=ok;
+  s.onerror=function(){if(fail)fail(src);};document.head.appendChild(s);
+}
+function setMsg(m){document.getElementById('ov-msg').textContent=m;}
+function showErr(m){
+  document.getElementById('ov-load').classList.add('hidden');
+  document.getElementById('ov-err').classList.remove('hidden');
+  document.getElementById('err-msg').textContent=m;
+}
+function syncUI(s){
+  var d=document.getElementById('sdot'),l=document.getElementById('slbl');
+  d.className='dot'+(s==='off'?' off':s==='syncing'?' syncing':'');
+  l.textContent=s==='on'?'Live':s==='off'?'Offline':'Syncing…';
+}
+
+// Load Firebase SDKs dynamically
+setMsg('Loading Firebase…');
+ld('https://unpkg.com/firebase@9.23.0/compat/app.js',function(){
+  ld('https://unpkg.com/firebase@9.23.0/compat/database.js',function(){
+    startApp();
+  },function(u){showErr('Could not load Firebase database SDK. Please check your internet connection.');});
+},function(u){showErr('Could not load Firebase app SDK. Please check your internet connection.');});
+
+function startApp(){
+  try{
+    firebase.initializeApp(FB);
+    db=firebase.database();
+    ref=db.ref(DB);
+    syncUI('syncing');
+    ref.once('value',function(snap){
+      if(!snap.exists()){
+        ref.set({
+          names:['','','','','',''],
+          tasks:['Morning check-in','Site visit','Report filed','Client call','Admin tasks','End of day summary'],
+          areas:['Office','Site A','Site B','Remote','Training','Support'],
+          columns:{}
+        });
+      }
+    });
+    ref.on('value',function(snap){
+      state=snap.val()||{};
+      document.getElementById('ov-load').classList.add('hidden');
+      syncUI('on');
+      redraw();
+    },function(err){
+      syncUI('off');
+      if(!state) showErr('Firebase connection refused: '+err.message+'. Make sure your database rules allow read/write in test mode.');
+    });
+  }catch(e){showErr('Firebase init error: '+e.message);}
+}
+
+function redraw(){
+  if(document.getElementById('sec-board').classList.contains('on')) drawBoard();
+  if(document.getElementById('sec-setup').classList.contains('on')) drawSetup();
+  if(document.getElementById('sec-sync').classList.contains('on'))  drawSync();
+}
+
+function dbSet(path,val){db.ref(DB+'/'+path).set(val);}
+function dbUpd(path,val){db.ref(DB+'/'+path).update(val);}
+
+// ── TABS ──────────────────────────────────────────────────────
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
+  document.querySelectorAll('.sec').forEach(function(el){el.classList.remove('on');});
+  document.querySelector('.tab[onclick="goTab(\''+t+'\')"]').classList.add('on');
+  document.getElementById('sec-'+t).classList.add('on');
+  redraw();
+}
+
+// ── BOARD ─────────────────────────────────────────────────────
+function drawBoard(){
+  if(!state)return;
+  var board=document.getElementById('board');
+  var names=state.names||[];
+  var active=names.filter(function(n){return n&&n.trim();});
+  board.style.gridTemplateColumns='repeat('+Math.min(active.length||1,3)+',1fr)';
+  board.innerHTML='';
+  document.getElementById('bd-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  names.forEach(function(name,ci){
+    if(!name||!name.trim())return;
+    var col=(state.columns||{})[ci]||{};
+    var c=COLORS[ci%COLORS.length];
+    var tasks=state.tasks||[];
+    var areas=state.areas||[];
+    var score=Object.values(col.tasks||{}).filter(Boolean).length;
+    var el=document.createElement('div');
+    el.className='col';el.id='col-'+ci;
+
+    // tasks rows
+    var th=tasks.length?tasks.map(function(t,ti){
+      var ck=(col.tasks||{})[ti];
+      return '<div class="tr">'
+        +'<input type="checkbox" class="chk"'+(ck?' checked':'')+' data-ci="'+ci+'" data-ti="'+ti+'" onchange="tgTask(this)">'
+        +'<span class="tl'+(ck?' done':'')+'">'+hx(t)+'</span>'
+        +'<span class="tv">+1</span></div>';
+    }).join(''):'<p style="font-size:.77rem;color:var(--tx2)">No tasks — add in Setup.</p>';
+
+    // area dropdown options
+    var ao=areas.map(function(a){return'<option value="'+hx(a)+'">'+hx(a)+'</option>';}).join('');
+
+    // selected area tags — use data-idx instead of encoding name in onclick
+    var sa=(col.areas||[]).map(function(a,ai){
+      return'<span class="satag">'+hx(a)
+        +'<button data-ci="'+ci+'" data-ai="'+ai+'" onclick="rmArea(this)" title="Remove">×</button></span>';
+    }).join('');
+
+    // photos
+    var ph=(col.photos||[]).map(function(src,pi){
+      return'<img src="'+src+'" class="pthumb" data-ci="'+ci+'" data-pi="'+pi+'" onclick="viewPh(this)">';
+    }).join('');
+
+    el.innerHTML=
+      '<div class="col-bar" style="background:'+c+'"></div>'
+      +'<div class="col-hdr">'
+        +'<span class="col-name" style="color:'+c+'">'+hx(name)+'</span>'
+        +'<div style="display:flex;align-items:center;gap:7px;">'
+          +(col.submitted?'<span class="sbadge">✓ Submitted</span>':'')
+          +'<span class="col-score" style="color:'+c+'">'+score+'/'+tasks.length+'</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="col-body">'
+        +'<div><div class="stitle">Tasks</div>'+th+'</div>'
+        +'<div>'
+          +'<div class="stitle">Area Worked</div>'
+          +'<div class="arow"><select data-ci="'+ci+'" onchange="addArea2(this)"><option value="">Select area…</option>'+ao+'</select></div>'
+          +'<div class="satags">'+sa+'</div>'
+        +'</div>'
+        +'<div>'
+          +'<div class="stitle">Notes / Ad-hoc</div>'
+          +'<textarea class="nta" placeholder="Notes…" data-ci="'+ci+'" oninput="saveNotes(this)">'+hx(col.notes||'')+'</textarea>'
+        +'</div>'
+        +(ph?'<div><div class="stitle">Photos</div><div class="pgrid">'+ph+'</div></div>':'')
+      +'</div>'
+      +'<div class="col-ft">'
+        +'<div class="ft-areas"><strong>Areas:</strong> '+((col.areas||[]).map(hx).join(', ')||'—')+'</div>'
+        +'<button class="btn bs xs" data-ci="'+ci+'" data-name="'+hx(name)+'" onclick="ssColBtn(this)">📸 '+hx(name)+'</button>'
+      +'</div>';
+    board.appendChild(el);
+  });
+}
+
+// Use data-attributes — no name encoding in onclick
+function tgTask(el){
+  var ci=el.getAttribute('data-ci');
+  var ti=el.getAttribute('data-ti');
+  dbSet('columns/'+ci+'/tasks/'+ti, el.checked);
+}
+function addArea2(sel){
+  var ci=sel.getAttribute('data-ci');
+  var v=sel.value;if(!v)return;
+  var ex=((state.columns||{})[ci]||{}).areas||[];
+  if(ex.indexOf(v)<0) dbSet('columns/'+ci+'/areas',ex.concat([v]));
+  sel.value='';
+}
+function rmArea(btn){
+  var ci=btn.getAttribute('data-ci');
+  var ai=parseInt(btn.getAttribute('data-ai'));
+  var ex=((state.columns||{})[ci]||{}).areas||[];
+  var updated=ex.filter(function(_,i){return i!==ai;});
+  dbSet('columns/'+ci+'/areas', updated.length?updated:null);
+}
+function saveNotes(ta){
+  var ci=ta.getAttribute('data-ci');
+  dbSet('columns/'+ci+'/notes', ta.value);
+}
+function viewPh(img){
+  var ci=img.getAttribute('data-ci');
+  var pi=parseInt(img.getAttribute('data-pi'));
+  var photos=((state.columns||{})[ci]||{}).photos||[];
+  document.getElementById('m-ph-img').src=photos[pi]||'';
+  openM('m-ph');
+}
+function ssColBtn(btn){
+  var ci=btn.getAttribute('data-ci');
+  var name=btn.getAttribute('data-name');
+  ssCol(parseInt(ci),name);
+}
+
+// ── SETUP ─────────────────────────────────────────────────────
+function drawSetup(){
+  if(!state)return;
+  var names=state.names||new Array(6).fill('');
+  document.getElementById('ngrid').innerHTML=names.map(function(n,i){
+    return'<div class="nrow">'
+      +'<span class="nlbl" style="color:'+COLORS[i]+'">#'+(i+1)+'</span>'
+      +'<input type="text" value="'+hx(n||'')+'" id="ni'+i+'" placeholder="Name '+(i+1)+'">'
+    +'</div>';
+  }).join('');
+
+  var tasks=state.tasks||[];
+  document.getElementById('tlist').innerHTML=tasks.length?tasks.map(function(t,i){
+    return'<div class="tmrow"><span>'+hx(t)+'</span>'
+      +'<div style="display:flex;gap:4px;">'
+        +'<button class="btn bs xs" data-i="'+i+'" onclick="editTask(this)">✏️</button>'
+        +'<button class="btn bd xs" data-i="'+i+'" onclick="delTask(this)">🗑</button>'
+      +'</div></div>';
+  }).join(''):'<p style="font-size:.81rem;color:var(--tx2);margin-top:5px;">No tasks yet.</p>';
+
+  var areas=state.areas||[];
+  document.getElementById('atags').innerHTML=areas.length?areas.map(function(a,i){
+    return'<div class="atag"><span>'+hx(a)+'</span>'
+      +'<button data-i="'+i+'" onclick="editArea(this)" title="Edit">✏️</button>'
+      +'<button data-i="'+i+'" onclick="delArea(this)" style="color:var(--red)" title="Delete">×</button>'
+    +'</div>';
+  }).join(''):'<p style="font-size:.81rem;color:var(--tx2);">No areas yet.</p>';
+}
+
+function saveNames(){
+  var n=[];
+  for(var i=0;i<6;i++){var e=document.getElementById('ni'+i);n.push(e?e.value.trim():'');}
+  dbSet('names',n);toast('✅ Names saved!');
+}
+function addTask(){
+  var el=document.getElementById('new-task'),v=el.value.trim();if(!v)return;
+  dbSet('tasks',(state.tasks||[]).concat([v]));el.value='';toast('✅ Task added!');
+}
+var _eti=-1;
+function editTask(btn){_eti=parseInt(btn.getAttribute('data-i'));document.getElementById('et-inp').value=(state.tasks||[])[_eti];openM('m-et');}
+function saveET(){
+  var v=document.getElementById('et-inp').value.trim();
+  if(v&&_eti>=0){var t=(state.tasks||[]).slice();t[_eti]=v;dbSet('tasks',t);toast('✅ Updated!');}
+  closeM('m-et');
+}
+function delTask(btn){
+  if(!confirm('Delete this task?'))return;
+  var i=parseInt(btn.getAttribute('data-i'));
+  var t=(state.tasks||[]).slice();t.splice(i,1);dbSet('tasks',t);toast('🗑 Deleted');
+}
+function addArea(){
+  var el=document.getElementById('new-area'),v=el.value.trim();if(!v)return;
+  dbSet('areas',(state.areas||[]).concat([v]));el.value='';toast('✅ Area added!');
+}
+var _eai=-1;
+function editArea(btn){_eai=parseInt(btn.getAttribute('data-i'));document.getElementById('ea-inp').value=(state.areas||[])[_eai];openM('m-ea');}
+function saveEA(){
+  var v=document.getElementById('ea-inp').value.trim();
+  if(v&&_eai>=0){var a=(state.areas||[]).slice();a[_eai]=v;dbSet('areas',a);toast('✅ Updated!');}
+  closeM('m-ea');
+}
+function delArea(btn){
+  if(!confirm('Delete this area?'))return;
+  var i=parseInt(btn.getAttribute('data-i'));
+  var a=(state.areas||[]).slice();a.splice(i,1);dbSet('areas',a);toast('🗑 Deleted');
+}
+
+// ── SYNC TAB ──────────────────────────────────────────────────
+function drawSync(){
+  if(!state)return;
+  var names=(state.names||[]).filter(function(n){return n&&n.trim();});
+  document.getElementById('ss-btns').innerHTML=names.map(function(name,i){
+    return'<button class="btn bs" data-ci="'+i+'" data-name="'+hx(name)+'" onclick="ssColBtn(this)">📸 <strong>'+hx(name)+'</strong></button>';
+  }).join('');
+  var h='<table><thead><tr><th>Metric</th>'
+    +names.map(function(n,i){return'<th style="color:'+COLORS[i]+'">'+hx(n)+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+  h+='<tr><td>Tasks Done</td>'
+    +names.map(function(_,i){var c=(state.columns||{})[i]||{};return'<td style="text-align:center">'+Object.values(c.tasks||{}).filter(Boolean).length+'</td>';}).join('')
+    +'</tr>';
+  h+='<tr><td>Areas</td>'
+    +names.map(function(_,i){var c=(state.columns||{})[i]||{};return'<td style="text-align:center;font-size:.74rem">'+((c.areas||[]).map(hx).join(', ')||'—')+'</td>';}).join('')
+    +'</tr>';
+  h+='<tr><td>Submitted</td>'
+    +names.map(function(_,i){var c=(state.columns||{})[i]||{};return'<td style="text-align:center">'+(c.submitted?'✅':'—')+'</td>';}).join('')
+    +'</tr>';
+  h+='</tbody></table>';
+  document.getElementById('sum').innerHTML=h;
+}
+
+// ── RESET ALL ─────────────────────────────────────────────────
+function resetAll(){
+  if(!confirm('Reset ALL task completions for today?'))return;
+  (state.names||[]).forEach(function(_,i){
+    dbSet('columns/'+i+'/tasks',null);
+    dbSet('columns/'+i+'/submitted',false);
+  });
+  toast('↺ All columns reset');
+}
+
+// ── SCREENSHOT ────────────────────────────────────────────────
+var _curSS='';
+function ssCol(ci,name){
+  var el=document.getElementById('col-'+ci);
+  if(!el){toast('⚠️ Switch to Board tab first');return;}
+  ensureH2C(function(){
+    window.html2canvas(el,{backgroundColor:'#161920',scale:2,useCORS:true,logging:false}).then(function(c){
+      _curSS=c.toDataURL('image/png');
+      document.getElementById('m-ss-img').src=_curSS;
+      document.getElementById('m-ss-title').textContent='📸 '+name+' — '+new Date().toLocaleDateString('en-GB');
+      openM('m-ss');
+    });
+  });
+}
+function ssAll(){
+  ensureH2C(function(){
+    window.html2canvas(document.getElementById('board'),{backgroundColor:'#0d0f14',scale:1.5,useCORS:true,logging:false}).then(function(c){
+      _curSS=c.toDataURL('image/png');
+      document.getElementById('m-ss-img').src=_curSS;
+      document.getElementById('m-ss-title').textContent='📸 All Columns — '+new Date().toLocaleDateString('en-GB');
+      openM('m-ss');
+    });
+  });
+}
+function ensureH2C(cb){
+  if(window.html2canvas){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  s.onload=cb;document.head.appendChild(s);
+}
+function dlSS(){
+  if(!_curSS)return;
+  var a=document.createElement('a');a.href=_curSS;a.download='taskboard-'+Date.now()+'.png';a.click();
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+document.addEventListener('click',function(e){if(e.target.classList.contains('mbg'))e.target.classList.remove('on');});
+
+// ── TOAST ─────────────────────────────────────────────────────
+var _tt;
+function toast(msg){
+  var el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');
+  clearTimeout(_tt);_tt=setTimeout(function(){el.classList.remove('on');},2700);
+}
+
+// ── HTML ESCAPE (display only — never put in onclick) ─────────
+function hx(s){
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
