@@ -443,21 +443,13 @@ function onUser(){
   }
   document.getElementById('no-user').style.display='none';
   document.getElementById('cred-section').style.display='block';
+  // Always reset credentials when a new user is selected
+  clearCreds();
   // update tasks screen label
   var names=(liveState&&liveState.names)||[];
   var name=names[ci]||'';
   var lbl=document.getElementById('tasks-user-label');
   if(lbl) lbl.textContent=name;
-  // check if creds already saved
-  var cred=loadCred();
-  if(cred){
-    showSavedCredView(cred);
-    showCredQRs();
-  } else {
-    document.getElementById('cred-input-view').style.display='block';
-    document.getElementById('cred-saved-view').style.display='none';
-    document.getElementById('qr-creds-card').style.display='none';
-  }
 }
 
 function saveCredentials(){
