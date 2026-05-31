@@ -120,37 +120,88 @@ input[type=file]{display:none;}
 </header>
 
 <main>
-  <!-- Name selector -->
-  <div class="card">
-    <div class="ctitle">👤 Select Your Name</div>
-    <div class="usel-wrap">
-      <select id="user-sel" onchange="onUser()">
-        <option value="">Connecting…</option>
-      </select>
-      <span class="sel-arr">▾</span>
-    </div>
-  </div>
 
-  <!-- QR Codes (shown after login) -->
-  <div class="card" id="qr-creds-card" style="display:none;">
-    <div class="ctitle">🔑 My Login QR Codes</div>
-    <p style="font-size:.8rem;color:var(--tx2);margin-bottom:14px;">Use these QR codes to log into other systems. Each code contains only that credential.</p>
-    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-        <div style="font-size:.75rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;">Username</div>
-        <div id="comp-qr-user" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);"></div>
-        <div id="comp-qr-user-lbl" style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--tx);text-align:center;"></div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-        <div style="font-size:.75rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;">Password</div>
-        <div id="comp-qr-pass" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--tx2);text-align:center;">••••••••</div>
+  <!-- ══ SCREEN 1: NAME + CREDENTIALS + QR ══ -->
+  <div id="screen-setup">
+
+    <!-- Step 1: Select Name -->
+    <div class="card">
+      <div class="ctitle">👤 Step 1 — Select Your Name</div>
+      <div class="usel-wrap">
+        <select id="user-sel" onchange="onUser()">
+          <option value="">Select your name…</option>
+        </select>
+        <span class="sel-arr">▾</span>
       </div>
     </div>
+
+    <!-- Step 2: Credentials (shown after name selected) -->
+    <div id="cred-section" style="display:none;">
+      <div class="card">
+        <div class="ctitle">🔐 Step 2 — Your Login Credentials</div>
+        <p style="font-size:.81rem;color:var(--tx2);margin-bottom:14px;">Enter your username and password. Your QR codes will be generated automatically.</p>
+        <div id="cred-saved-view" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:var(--tx);font-weight:600;" id="cred-saved-name"></div>
+              <div style="font-size:.78rem;color:var(--tx2);margin-top:2px;">Credentials saved on this device</div>
+            </div>
+            <button onclick="clearCreds()" style="background:none;border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;font-size:.75rem;color:var(--tx2);cursor:pointer;">Change</button>
+          </div>
+        </div>
+        <div id="cred-input-view">
+          <div style="margin-bottom:10px;">
+            <label style="font-size:.79rem;font-weight:600;color:var(--tx2);display:block;margin-bottom:4px;">Username</label>
+            <input type="text" id="cred-user" placeholder="Your username…" autocomplete="username">
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:.79rem;font-weight:600;color:var(--tx2);display:block;margin-bottom:4px;">Password</label>
+            <input type="password" id="cred-pass" placeholder="Your password…" autocomplete="current-password">
+          </div>
+          <button class="btn-sub" style="font-size:.9rem;padding:11px;" onclick="saveCredentials()">Save &amp; Generate QR Codes</button>
+        </div>
+      </div>
+
+      <!-- Step 3: QR Codes (shown after credentials saved) -->
+      <div class="card" id="qr-creds-card" style="display:none;">
+        <div class="ctitle">🔑 Step 3 — Your Login QR Codes</div>
+        <p style="font-size:.8rem;color:var(--tx2);margin-bottom:16px;">Scan these with any external system. Username and password are separate QR codes.</p>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;">Username</div>
+            <div id="comp-qr-user" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);min-width:80px;min-height:80px;"></div>
+            <div id="comp-qr-user-lbl" style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--tx);text-align:center;max-width:150px;word-break:break-all;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;">Password</div>
+            <div id="comp-qr-pass" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);min-width:80px;min-height:80px;"></div>
+            <div style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--tx2);text-align:center;">••••••••</div>
+          </div>
+        </div>
+        <!-- Go to Daily Tasks button -->
+        <button class="btn-sub" style="font-size:1rem;padding:14px;font-weight:700;letter-spacing:.01em;" onclick="goToTasks()">
+          📋 Go to Daily Tasks →
+        </button>
+      </div>
+
+    </div>
+
+    <!-- No name selected prompt -->
+    <div id="no-user" class="no-user">
+      <div class="ico">👆</div>
+      <div>Select your name above to get started.</div>
+    </div>
+
   </div>
 
-  <!-- Main content (hidden until user selected) -->
-  <div id="main-content" style="display:none;">
+  <!-- ══ SCREEN 2: DAILY TASKS ══ -->
+  <div id="screen-tasks" style="display:none;">
+
+    <!-- Back button + user label -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <button onclick="goToSetup()" style="background:none;border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:.82rem;color:var(--tx2);cursor:pointer;">← Back</button>
+      <div style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--tx);font-weight:600;" id="tasks-user-label"></div>
+    </div>
 
     <!-- Score + Tasks -->
     <div class="card">
@@ -202,11 +253,6 @@ input[type=file]{display:none;}
 
   </div>
 
-  <!-- Prompt when no user selected -->
-  <div id="no-user" class="no-user">
-    <div class="ico">👆</div>
-    <div>Select your name above to start logging today's activity.</div>
-  </div>
 </main>
 
 <div class="toast" id="toast"></div>
@@ -300,7 +346,6 @@ function hideLoginScreen(){
   document.getElementById('ov-login').style.display='none';
   showAppContent();
   populateNames();
-  showCredQRs();
 }
 
 function showCredQRs(){
@@ -309,15 +354,13 @@ function showCredQRs(){
   var card=document.getElementById('qr-creds-card');
   if(card) card.style.display='block';
   ensureQR(function(){
-    // Username QR
     var uDiv=document.getElementById('comp-qr-user');
     uDiv.innerHTML='';
-    new QRCode(uDiv,{text:cred.u,width:140,height:140,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(uDiv,{text:cred.u,width:150,height:150,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
     document.getElementById('comp-qr-user-lbl').textContent=cred.u;
-    // Password QR
     var pDiv=document.getElementById('comp-qr-pass');
     pDiv.innerHTML='';
-    new QRCode(pDiv,{text:cred.p,width:140,height:140,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(pDiv,{text:cred.p,width:150,height:150,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
   });
 }
 
@@ -350,7 +393,6 @@ function startApp(){
       // Check login
       if(!checkLogin()){showLoginScreen();return;}
       showAppContent();
-      showCredQRs();
       populateNames();
       if(ci>=0)render();
     },function(err){
@@ -377,18 +419,73 @@ function populateNames(){
   if(prev!=='')sel.value=prev;
 }
 
+// ── SCREEN NAVIGATION ────────────────────────────────────────
+function goToTasks(){
+  document.getElementById('screen-setup').style.display='none';
+  document.getElementById('screen-tasks').style.display='block';
+  window.scrollTo(0,0);
+  attachNotesListener();
+  render();
+}
+function goToSetup(){
+  document.getElementById('screen-tasks').style.display='none';
+  document.getElementById('screen-setup').style.display='block';
+  window.scrollTo(0,0);
+}
+
 function onUser(){
   var v=document.getElementById('user-sel').value;
   ci=v!==''?parseInt(v):-1;
   if(ci<0){
-    document.getElementById('main-content').style.display='none';
+    document.getElementById('cred-section').style.display='none';
     document.getElementById('no-user').style.display='block';
     return;
   }
-  document.getElementById('main-content').style.display='block';
   document.getElementById('no-user').style.display='none';
-  attachNotesListener();
-  render();
+  document.getElementById('cred-section').style.display='block';
+  // update tasks screen label
+  var names=(liveState&&liveState.names)||[];
+  var name=names[ci]||'';
+  var lbl=document.getElementById('tasks-user-label');
+  if(lbl) lbl.textContent=name;
+  // check if creds already saved
+  var cred=loadCred();
+  if(cred){
+    showSavedCredView(cred);
+    showCredQRs();
+  } else {
+    document.getElementById('cred-input-view').style.display='block';
+    document.getElementById('cred-saved-view').style.display='none';
+    document.getElementById('qr-creds-card').style.display='none';
+  }
+}
+
+function saveCredentials(){
+  var u=document.getElementById('cred-user').value.trim();
+  var p=document.getElementById('cred-pass').value.trim();
+  if(!u||!p){showToast('⚠️ Please enter both username and password');return;}
+  saveCred(u,p);
+  showSavedCredView({u:u,p:p});
+  showCredQRs();
+  showToast('✅ Credentials saved!');
+}
+
+function showSavedCredView(cred){
+  document.getElementById('cred-input-view').style.display='none';
+  document.getElementById('cred-saved-view').style.display='block';
+  var lbl=document.getElementById('cred-saved-name');
+  if(lbl) lbl.textContent='👤 '+cred.u;
+}
+
+function clearCreds(){
+  localStorage.removeItem(CRED_KEY);
+  document.getElementById('cred-saved-view').style.display='none';
+  document.getElementById('cred-input-view').style.display='block';
+  document.getElementById('qr-creds-card').style.display='none';
+  document.getElementById('comp-qr-user').innerHTML='';
+  document.getElementById('comp-qr-pass').innerHTML='';
+  document.getElementById('cred-user').value='';
+  document.getElementById('cred-pass').value='';
 }
 
 // Notes input: debounced write to Firebase
