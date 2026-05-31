@@ -220,13 +220,13 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 
 <script>
 var FB={
-  apiKey:"AIzaSyCVJHazSMLcMGbBb6erP0TzfuF1_SGbVT0",
-  authDomain:"gm-daily-task-manager.firebaseapp.com",
-  databaseURL:"https://gm-daily-task-manager-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"gm-daily-task-manager",
-  storageBucket:"gm-daily-task-manager.firebasestorage.app",
-  messagingSenderId:"1044732093775",
-  appId:"1:1044732093775:web:1cd95287c088beb045513a"
+  apiKey:"AIzaSyCXPyuulkTdkHv8I35ryZ-WO3r0jTwz3Lg",
+  authDomain:"gm-daily-handover-75156.firebaseapp.com",
+  databaseURL:"https://gm-daily-handover-75156-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"gm-daily-handover-75156",
+  storageBucket:"gm-daily-handover-75156.firebasestorage.app",
+  messagingSenderId:"574134415721",
+  appId:"1:574134415721:web:7a7dcbb7a78e0144f54df8"
 };
 var COLORS=['#5b8af5','#f5a623','#4ecb71','#e85b9a','#a78bfa','#fb923c'];
 var DB='taskboard';
@@ -253,11 +253,24 @@ function syncUI(s){
 
 // Load Firebase SDKs dynamically
 setMsg('Loading Firebase…');
-ld('https://unpkg.com/firebase@9.23.0/compat/app.js',function(){
-  ld('https://unpkg.com/firebase@9.23.0/compat/database.js',function(){
+// Try official Firebase CDN first, fall back to cdnjs
+var FB_APP_URLS=[
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js'
+];
+var FB_DB_URLS=[
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js'
+];
+function ldWithFallback(urls,idx,ok,fail){
+  if(idx>=urls.length){fail();return;}
+  ld(urls[idx],ok,function(){ldWithFallback(urls,idx+1,ok,fail);});
+}
+ldWithFallback(FB_APP_URLS,0,function(){
+  ldWithFallback(FB_DB_URLS,0,function(){
     startApp();
-  },function(u){showErr('Could not load Firebase database SDK. Please check your internet connection.');});
-},function(u){showErr('Could not load Firebase app SDK. Please check your internet connection.');});
+  },function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
+},function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
 
 function startApp(){
   try{
