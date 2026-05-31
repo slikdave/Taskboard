@@ -152,11 +152,11 @@ input[type=file]{display:none;}
         <div id="cred-input-view">
           <div style="margin-bottom:10px;">
             <label style="font-size:.79rem;font-weight:600;color:var(--tx2);display:block;margin-bottom:4px;">Username</label>
-            <input type="text" id="cred-user" placeholder="Your username…" autocomplete="username">
+            <input type="text" id="cred-user" placeholder="Your username…" autocomplete="username" style="font-size:1.1rem;padding:14px;border-width:2px;">
           </div>
           <div style="margin-bottom:14px;">
             <label style="font-size:.79rem;font-weight:600;color:var(--tx2);display:block;margin-bottom:4px;">Password</label>
-            <input type="password" id="cred-pass" placeholder="Your password…" autocomplete="current-password">
+            <input type="password" id="cred-pass" placeholder="Your password…" autocomplete="current-password" style="font-size:1.1rem;padding:14px;border-width:2px;">
           </div>
           <button class="btn-sub" style="font-size:.9rem;padding:11px;" onclick="saveCredentials()">Save &amp; Generate QR Codes</button>
         </div>
@@ -421,6 +421,8 @@ function populateNames(){
 
 // ── SCREEN NAVIGATION ────────────────────────────────────────
 function goToTasks(){
+  // Wipe credentials once user proceeds to tasks
+  clearCreds();
   document.getElementById('screen-setup').style.display='none';
   document.getElementById('screen-tasks').style.display='block';
   window.scrollTo(0,0);
