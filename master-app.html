@@ -142,9 +142,12 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
   <div id="sec-setup" class="sec">
     <div class="sec-title" style="margin-bottom:20px;">Setup &amp; Configuration</div>
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:8px;">👥 Colleague Names</h3>
-    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:11px;">These names appear in the Companion App dropdown.</p>
-    <div class="ngrid" id="ngrid"></div>
-    <button class="btn bp sm" style="margin-top:11px;" onclick="saveNames()">Save Names</button>
+    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:11px;">These names appear in the Companion App dropdown. Add as many as you need.</p>
+    <div class="addrow">
+      <input type="text" id="new-name" placeholder="Add colleague name…" onkeydown="if(event.key==='Enter')addName()">
+      <button class="btn bp sm" onclick="addName()">Add</button>
+    </div>
+    <div class="tlist" id="ngrid" style="margin-top:10px;"></div>
     <hr class="div">
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:6px;">✅ Master Task List</h3>
     <p style="color:var(--tx2);font-size:.83rem;margin-bottom:9px;">Tasks appear in every colleague column.</p>
@@ -167,7 +170,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
     <div class="sec-title" style="margin-bottom:16px;">Sync &amp; Share</div>
     <div class="scard">
       <div style="font-weight:600;font-size:.9rem;margin-bottom:4px;">🔥 Firebase Connected</div>
-      <div style="font-size:.81rem;color:var(--tx2);">Project: <strong style="color:var(--tx)">gm-daily-task-manager</strong> &nbsp;·&nbsp; Europe West 1 &nbsp;·&nbsp; Live sync</div>
+      <div style="font-size:.81rem;color:var(--tx2);">Project: <strong style="color:var(--tx)">gm-daily-handover-75156</strong> &nbsp;·&nbsp; Europe West 1 &nbsp;·&nbsp; Live sync</div>
     </div>
     <div class="scard">
       <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">📱 Share Companion App</div>
@@ -431,13 +434,19 @@ function ssColBtn(btn){
 // ── SETUP ─────────────────────────────────────────────────────
 function drawSetup(){
   if(!state)return;
-  var names=state.names||new Array(6).fill('');
-  document.getElementById('ngrid').innerHTML=names.map(function(n,i){
-    return'<div class="nrow">'
-      +'<span class="nlbl" style="color:'+COLORS[i]+'">#'+(i+1)+'</span>'
-      +'<input type="text" value="'+hx(n||'')+'" id="ni'+i+'" placeholder="Name '+(i+1)+'">'
+  var names=(state.names||[]).filter(function(n){return n&&n.trim();});
+  document.getElementById('ngrid').innerHTML=names.length?names.map(function(n,i){
+    return'<div class="tmrow">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex:1;">'
+        +'<span style="width:10px;height:10px;border-radius:50%;background:'+COLORS[i%COLORS.length]+';flex-shrink:0;display:inline-block;"></span>'
+        +'<span>'+hx(n)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;">'
+        +'<button class="btn bs xs" data-i="'+i+'" onclick="editName(this)">✏️</button>'
+        +'<button class="btn bd xs" data-i="'+i+'" onclick="delName(this)">🗑</button>'
+      +'</div>'
     +'</div>';
-  }).join('');
+  }).join(''):'<p style="font-size:.81rem;color:var(--tx2);margin-top:5px;">No names yet — add your first colleague above.</p>';
 
   var tasks=state.tasks||[];
   document.getElementById('tlist').innerHTML=tasks.length?tasks.map(function(t,i){
@@ -457,22 +466,40 @@ function drawSetup(){
   }).join(''):'<p style="font-size:.81rem;color:var(--tx2);">No areas yet.</p>';
 }
 
-function saveNames(){
-  var n=[];
-  for(var i=0;i<6;i++){var e=document.getElementById('ni'+i);n.push(e?e.value.trim():'');}
-  dbSet('names',n);toast('✅ Names saved!');
+function addName(){
+  var el=document.getElementById('new-name'),v=el.value.trim();if(!v)return;
+  var names=(state.names||[]).filter(function(n){return n&&n.trim();});
+  if(names.indexOf(v)>=0){toast('⚠️ Name already exists');return;}
+  dbSet('names',names.concat([v]));el.value='';toast('✅ '+v+' added!');
+}
+var _eni=-1;
+function editName(btn){_eni=parseInt(btn.getAttribute('data-i'));_eti=-1;document.getElementById('et-inp').value=((state.names||[]).filter(function(n){return n&&n.trim();}))[_eni];openM('m-et');}
+function saveET(){
+  var v=document.getElementById('et-inp').value.trim();
+  if(v){
+    if(_eni>=0){
+      // editing a name
+      var names=(state.names||[]).filter(function(n){return n&&n.trim();});
+      names[_eni]=v;dbSet('names',names);toast('✅ Updated!');
+      _eni=-1;
+    } else if(_eti>=0){
+      var t=(state.tasks||[]).slice();t[_eti]=v;dbSet('tasks',t);toast('✅ Updated!');
+    }
+  }
+  closeM('m-et');
+}
+function delName(btn){
+  if(!confirm('Remove this colleague?'))return;
+  var i=parseInt(btn.getAttribute('data-i'));
+  var names=(state.names||[]).filter(function(n){return n&&n.trim();});
+  names.splice(i,1);dbSet('names',names);toast('🗑 Removed');
 }
 function addTask(){
   var el=document.getElementById('new-task'),v=el.value.trim();if(!v)return;
   dbSet('tasks',(state.tasks||[]).concat([v]));el.value='';toast('✅ Task added!');
 }
 var _eti=-1;
-function editTask(btn){_eti=parseInt(btn.getAttribute('data-i'));document.getElementById('et-inp').value=(state.tasks||[])[_eti];openM('m-et');}
-function saveET(){
-  var v=document.getElementById('et-inp').value.trim();
-  if(v&&_eti>=0){var t=(state.tasks||[]).slice();t[_eti]=v;dbSet('tasks',t);toast('✅ Updated!');}
-  closeM('m-et');
-}
+function editTask(btn){_eti=parseInt(btn.getAttribute('data-i'));_eni=-1;document.getElementById('et-inp').value=(state.tasks||[])[_eti];openM('m-et');}
 function delTask(btn){
   if(!confirm('Delete this task?'))return;
   var i=parseInt(btn.getAttribute('data-i'));
