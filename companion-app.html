@@ -267,10 +267,12 @@ function loadCred(){try{return JSON.parse(localStorage.getItem(CRED_KEY)||'null'
 function getCreds(){return(liveState&&liveState.credentials)||{};}
 
 function checkLogin(){
+  var creds=getCreds();
+  // If no credentials configured in Firebase yet — always allow through
+  if(!Object.keys(creds).length)return true;
+  // Credentials exist — must have a matching stored cred on this device
   var cred=loadCred();
   if(!cred)return false;
-  var creds=getCreds();
-  if(!Object.keys(creds).length)return true; // no creds set = open access
   for(var k in creds){
     if(creds[k].u===cred.u&&creds[k].p===cred.p)return true;
   }
@@ -297,6 +299,7 @@ function showLoginErr(m){var el=document.getElementById('login-err');el.textCont
 function hideLoginScreen(){
   document.getElementById('ov-login').style.display='none';
   showAppContent();
+  populateNames();
   showCredQRs();
 }
 
@@ -347,6 +350,7 @@ function startApp(){
       // Check login
       if(!checkLogin()){showLoginScreen();return;}
       showAppContent();
+      showCredQRs();
       populateNames();
       if(ci>=0)render();
     },function(err){

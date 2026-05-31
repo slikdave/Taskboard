@@ -357,8 +357,8 @@ function startApp(){
     });
     ref.on('value',function(snap){
       state=snap.val()||{};
-      if(!checkMasterLogin()){showMLoginScreen();return;}
       document.getElementById('ov-load').classList.add('hidden');
+      if(!checkMasterLogin()){showMLoginScreen();return;}
       syncUI('on');
       redraw();
     },function(err){
@@ -687,6 +687,8 @@ function showMLoginErr(m){var el=document.getElementById('login-err');el.textCon
 function hideMLoginScreen(){
   document.getElementById('ov-login').classList.add('hidden');
   document.getElementById('ov-load').classList.add('hidden');
+  syncUI('on');
+  redraw();
 }
 
 // ── CREDENTIALS SETUP ─────────────────────────────────────────
