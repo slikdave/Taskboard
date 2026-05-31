@@ -73,9 +73,34 @@ input[type=file]{display:none;}
 .no-user .ico{font-size:2.6rem;margin-bottom:10px;}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1d2e;color:#fff;padding:10px 18px;border-radius:10px;font-size:.86rem;z-index:9999;transition:all .3s;opacity:0;white-space:nowrap;}
 .toast.on{transform:translateX(-50%) translateY(0);opacity:1;}
+
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.qr-box canvas{border-radius:8px;border:3px solid var(--bdr);}
 </style>
 </head>
 <body>
+
+
+<!-- LOGIN SCREEN -->
+<div class="overlay" id="ov-login" style="display:none;">
+  <div style="background:#fff;border-radius:18px;padding:28px;max-width:340px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,#6aaa5e,#5a9850);border-radius:14px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;font-weight:900;font-family:Arial Black,sans-serif;">GM</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#0d2016;">GM Handover</div>
+      <div style="font-size:.78rem;color:#4b7260;margin-top:2px;">Companion App</div>
+    </div>
+    <div id="login-err" style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:.81rem;color:#dc2626;margin-bottom:12px;display:none;"></div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:.8rem;font-weight:600;color:#0d2016;display:block;margin-bottom:4px;">Username</label>
+      <input type="text" id="login-user" placeholder="Enter username…" autocomplete="username" style="background:#f0faf4;border:2px solid #bbf0d4;color:#0d2016;border-radius:8px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;width:100%;">
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:.8rem;font-weight:600;color:#0d2016;display:block;margin-bottom:4px;">Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password…" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="background:#f0faf4;border:2px solid #bbf0d4;color:#0d2016;border-radius:8px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;width:100%;">
+    </div>
+    <button onclick="doLogin()" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:13px;font-size:.95rem;font-weight:700;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;">Sign In</button>
+  </div>
+</div>
 
 <div class="overlay" id="ov-load">
   <div class="spinner"></div>
@@ -90,7 +115,7 @@ input[type=file]{display:none;}
 </div>
 
 <header>
-  <div class="logo">GM Handover<small>COMPANION</small></div>
+  <div><div class="logo">GM Handover<small>COMPANION</small></div><div id="hdr-date" style="font-size:.68rem;color:rgba(255,255,255,.7);margin-top:1px;font-family:'DM Mono',monospace;"></div></div>
   <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
 </header>
 
@@ -103,6 +128,24 @@ input[type=file]{display:none;}
         <option value="">Connecting…</option>
       </select>
       <span class="sel-arr">▾</span>
+    </div>
+  </div>
+
+  <!-- QR Codes (shown after login) -->
+  <div class="card" id="qr-creds-card" style="display:none;">
+    <div class="ctitle">🔑 My Login QR Codes</div>
+    <p style="font-size:.8rem;color:var(--tx2);margin-bottom:14px;">Use these QR codes to log into other systems. Each code contains only that credential.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="font-size:.75rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;">Username</div>
+        <div id="comp-qr-user" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);"></div>
+        <div id="comp-qr-user-lbl" style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--tx);text-align:center;"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="font-size:.75rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;">Password</div>
+        <div id="comp-qr-pass" style="background:#fff;padding:10px;border-radius:10px;border:2px solid var(--bdr);"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--tx2);text-align:center;">••••••••</div>
+      </div>
     </div>
   </div>
 
@@ -154,7 +197,7 @@ input[type=file]{display:none;}
     <div class="card">
       <button class="btn-sub" onclick="submitActivity()">✓ Submit My Activity</button>
       <div class="last-sub" id="last-sub"></div>
-      <button class="btn-rst" onclick="resetActivity()">↺ Reset My Daily Activity</button>
+      <button class="btn-rst" onclick="resetActivity()">↺ Reset All Today's Activity</button>
     </div>
 
   </div>
@@ -217,6 +260,80 @@ ldWithFallback(FB_APP_URLS,0,function(){
   },function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
 },function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
 
+// ── CREDENTIALS (stored locally per device only) ────────────
+var CRED_KEY='gmh_cred_v1';
+function saveCred(u,p){localStorage.setItem(CRED_KEY,JSON.stringify({u:u,p:p}));}
+function loadCred(){try{return JSON.parse(localStorage.getItem(CRED_KEY)||'null');}catch(e){return null;}}
+function getCreds(){return(liveState&&liveState.credentials)||{};}
+
+function checkLogin(){
+  var cred=loadCred();
+  if(!cred)return false;
+  var creds=getCreds();
+  if(!Object.keys(creds).length)return true; // no creds set = open access
+  for(var k in creds){
+    if(creds[k].u===cred.u&&creds[k].p===cred.p)return true;
+  }
+  return false;
+}
+
+function showLoginScreen(){
+  document.getElementById('ov-load').classList.add('hidden');
+  document.getElementById('ov-login').style.display='flex';
+}
+
+function doLogin(){
+  var u=document.getElementById('login-user').value.trim();
+  var p=document.getElementById('login-pass').value;
+  if(!u||!p){showLoginErr('Please enter your username and password.');return;}
+  var creds=getCreds();
+  if(!Object.keys(creds).length){saveCred(u,p);hideLoginScreen();return;}
+  var match=false;
+  for(var k in creds){if(creds[k].u===u&&creds[k].p===p){match=true;break;}}
+  if(match){saveCred(u,p);hideLoginScreen();}
+  else showLoginErr('Incorrect username or password.');
+}
+function showLoginErr(m){var el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
+function hideLoginScreen(){
+  document.getElementById('ov-login').style.display='none';
+  showAppContent();
+  showCredQRs();
+}
+
+function showCredQRs(){
+  var cred=loadCred();
+  if(!cred)return;
+  var card=document.getElementById('qr-creds-card');
+  if(card) card.style.display='block';
+  ensureQR(function(){
+    // Username QR
+    var uDiv=document.getElementById('comp-qr-user');
+    uDiv.innerHTML='';
+    new QRCode(uDiv,{text:cred.u,width:140,height:140,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    document.getElementById('comp-qr-user-lbl').textContent=cred.u;
+    // Password QR
+    var pDiv=document.getElementById('comp-qr-pass');
+    pDiv.innerHTML='';
+    new QRCode(pDiv,{text:cred.p,width:140,height:140,colorDark:'#0d2016',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  });
+}
+
+function ensureQR(cb){
+  if(window.QRCode){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload=cb;document.head.appendChild(s);
+}
+
+function showAppContent(){
+  // show date in header
+  var d=new Date();
+  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var el=document.getElementById('hdr-date');
+  if(el)el.textContent=days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
+}
+
 function startApp(){
   try{
     firebase.initializeApp(FB);
@@ -227,6 +344,9 @@ function startApp(){
       liveState=snap.val()||{};
       document.getElementById('ov-load').classList.add('hidden');
       syncUI('on');
+      // Check login
+      if(!checkLogin()){showLoginScreen();return;}
+      showAppContent();
       populateNames();
       if(ci>=0)render();
     },function(err){
@@ -263,7 +383,6 @@ function onUser(){
   }
   document.getElementById('main-content').style.display='block';
   document.getElementById('no-user').style.display='none';
-  // attach notes listener now that we have a user
   attachNotesListener();
   render();
 }
@@ -426,9 +545,12 @@ function submitActivity(){
 
 // ── RESET ─────────────────────────────────────────────────────
 function resetActivity(){
-  if(!confirm('Reset all your activity for today? This cannot be undone.'))return;
+  if(!confirm('Reset ALL your activity for today?\nThis will clear:\n• All ticked tasks\n• All areas selected\n• Notes\n• Photos\n\nThis cannot be undone.'))return;
   dbUpd('columns/'+ci,{tasks:null,areas:null,notes:'',photos:null,submitted:false,lastSubmit:null});
-  showToast('↺ Activity reset');
+  // also clear local UI immediately
+  document.getElementById('notes').value='';
+  document.getElementById('photo-grid').innerHTML='';
+  showToast('↺ All activity reset for today');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────

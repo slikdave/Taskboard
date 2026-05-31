@@ -109,6 +109,28 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 </head>
 <body>
 
+
+<!-- LOGIN SCREEN -->
+<div class="overlay hidden" id="ov-login">
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:18px;padding:28px;max-width:340px;width:90%;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,#3a7a40,#2d6232);border-radius:14px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#4ade80;font-weight:900;font-family:Arial Black,sans-serif;">GM</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--tx);">GM Handover</div>
+      <div style="font-size:.78rem;color:var(--tx2);margin-top:2px;">Master App</div>
+    </div>
+    <div id="login-err" style="background:rgba(245,91,91,.1);border:1px solid var(--red);border-radius:8px;padding:8px 12px;font-size:.81rem;color:var(--red);margin-bottom:12px;display:none;"></div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:.8rem;font-weight:600;color:var(--tx);display:block;margin-bottom:4px;">Username</label>
+      <input type="text" id="login-user" placeholder="Enter username…" autocomplete="username">
+    </div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:.8rem;font-weight:600;color:var(--tx);display:block;margin-bottom:4px;">Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password…" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" class="btn bp" style="width:100%;padding:12px;font-size:.95rem;">Sign In</button>
+  </div>
+</div>
+
 <div class="overlay" id="ov-load">
   <div class="spinner"></div>
   <div class="ov-msg" id="ov-msg">Loading Firebase…</div>
@@ -171,6 +193,15 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
       <button class="btn bp sm" onclick="addArea()">Add</button>
     </div>
     <div class="atags" id="atags"></div>
+  <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:6px;">🔐 App Credentials</h3>
+    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:11px;">Add username/password pairs for staff. Each person uses their own to log in. QR codes are generated in the Sync &amp; Share tab.</p>
+    <div class="addrow" style="max-width:500px;">
+      <input type="text" id="new-cred-u" placeholder="Username…" style="flex:1;">
+      <input type="password" id="new-cred-p" placeholder="Password…" style="flex:1;">
+      <button class="btn bp sm" onclick="addCred()">Add</button>
+    </div>
+    <div class="tlist" id="cred-list" style="margin-top:10px;max-width:500px;"></div>
   </div>
 
   <div id="sec-sync" class="sec">
@@ -188,12 +219,38 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:11px;">📸 Screenshot Columns</h3>
     <div style="display:flex;flex-wrap:wrap;gap:9px;" id="ss-btns"></div>
     <hr class="div">
+    <h3 style="font-family:'Syne',sans-serif;margin-bottom:11px;">🔑 Staff Login QR Codes</h3>
+    <p style="font-size:.81rem;color:var(--tx2);margin-bottom:14px;">Tap <strong>Show QR</strong> next to any staff member to display their username and password as separate QR codes — scannable by any external system.</p>
+    <div id="qr-grid" style="display:flex;flex-direction:column;gap:10px;max-width:500px;"></div>
+    <hr class="div">
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:9px;">📊 Today's Summary</h3>
     <div class="sum" id="sum"></div>
   </div>
 </main>
 
 <div class="toast" id="toast"></div>
+
+<div class="mbg" id="m-qr">
+  <div class="mbox" style="max-width:380px;text-align:center;">
+    <h3 id="m-qr-title">🔑 Login QR Codes</h3>
+    <p style="font-size:.81rem;color:var(--tx2);margin-bottom:16px;">Scan these with any external system. Each QR contains only that credential.</p>
+    <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;">Username</div>
+        <div id="m-qr-user" style="background:#fff;padding:8px;border-radius:8px;"></div>
+        <div id="m-qr-user-lbl" style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--tx);"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.07em;">Password</div>
+        <div id="m-qr-pass" style="background:#fff;padding:8px;border-radius:8px;"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--tx2);">••••••••</div>
+      </div>
+    </div>
+    <div class="mact" style="justify-content:center;">
+      <button class="btn bs sm" onclick="closeM('m-qr')">Close</button>
+    </div>
+  </div>
+</div>
 
 <div class="mbg" id="m-ss"><div class="mbox" style="max-width:560px;">
   <h3 id="m-ss-title">Screenshot</h3>
@@ -300,6 +357,7 @@ function startApp(){
     });
     ref.on('value',function(snap){
       state=snap.val()||{};
+      if(!checkMasterLogin()){showMLoginScreen();return;}
       document.getElementById('ov-load').classList.add('hidden');
       syncUI('on');
       redraw();
@@ -312,8 +370,8 @@ function startApp(){
 
 function redraw(){
   if(document.getElementById('sec-board').classList.contains('on')) drawBoard();
-  if(document.getElementById('sec-setup').classList.contains('on')) drawSetup();
-  if(document.getElementById('sec-sync').classList.contains('on'))  drawSync();
+  if(document.getElementById('sec-setup').classList.contains('on')){drawSetup();drawCredList();}
+  if(document.getElementById('sec-sync').classList.contains('on')){drawSync();drawQRGrid();}
 }
 
 function dbSet(path,val){db.ref(DB+'/'+path).set(val);}
@@ -595,6 +653,125 @@ function ensureH2C(cb){
 function dlSS(){
   if(!_curSS)return;
   var a=document.createElement('a');a.href=_curSS;a.download='taskboard-'+Date.now()+'.png';a.click();
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+var MCRED_KEY='gmh_master_cred_v1';
+function saveMCred(u,p){localStorage.setItem(MCRED_KEY,JSON.stringify({u:u,p:p}));}
+function loadMCred(){try{return JSON.parse(localStorage.getItem(MCRED_KEY)||'null');}catch(e){return null;}}
+function getCreds(){return(state&&state.credentials)||{};}
+function checkMasterLogin(){
+  var cred=loadMCred();
+  var creds=getCreds();
+  if(!Object.keys(creds).length)return true;
+  if(!cred)return false;
+  for(var k in creds){if(creds[k].u===cred.u&&creds[k].p===cred.p)return true;}
+  return false;
+}
+function showMLoginScreen(){
+  document.getElementById('ov-load').classList.add('hidden');
+  document.getElementById('ov-login').classList.remove('hidden');
+}
+function doLogin(){
+  var u=document.getElementById('login-user').value.trim();
+  var p=document.getElementById('login-pass').value;
+  if(!u||!p){showMLoginErr('Please enter username and password.');return;}
+  var creds=getCreds();
+  if(!Object.keys(creds).length){saveMCred(u,p);hideMLoginScreen();return;}
+  var ok=false;
+  for(var k in creds){if(creds[k].u===u&&creds[k].p===p){ok=true;break;}}
+  if(ok){saveMCred(u,p);hideMLoginScreen();}
+  else showMLoginErr('Incorrect username or password.');
+}
+function showMLoginErr(m){var el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
+function hideMLoginScreen(){
+  document.getElementById('ov-login').classList.add('hidden');
+  document.getElementById('ov-load').classList.add('hidden');
+}
+
+// ── CREDENTIALS SETUP ─────────────────────────────────────────
+function drawCredList(){
+  var creds=getCreds();
+  var keys=Object.keys(creds);
+  var el=document.getElementById('cred-list');if(!el)return;
+  el.innerHTML=keys.length?keys.map(function(k){
+    return'<div class="tmrow">'
+      +'<span style="font-family:\'DM Mono\',monospace;font-size:.82rem;color:var(--tx);">'+hx(creds[k].u)+'</span>'
+      +'<span style="color:var(--tx2);font-size:.78rem;margin-left:8px;">••••••</span>'
+      +'<div style="margin-left:auto;display:flex;gap:4px;">'
+        +'<button class="btn bd xs" data-k="'+hx(k)+'" onclick="delCred(this)">🗑</button>'
+      +'</div></div>';
+  }).join(''):'<p style="font-size:.81rem;color:var(--tx2);margin-top:5px;">No credentials yet.</p>';
+}
+function addCred(){
+  var u=document.getElementById('new-cred-u').value.trim();
+  var p=document.getElementById('new-cred-p').value.trim();
+  if(!u||!p){toast('⚠️ Enter both username and password');return;}
+  var creds=Object.assign({},getCreds());
+  creds['cred_'+Date.now()]={u:u,p:p};
+  dbSet('credentials',creds);
+  document.getElementById('new-cred-u').value='';
+  document.getElementById('new-cred-p').value='';
+  toast('✅ Credential added for '+u);
+}
+function delCred(btn){
+  if(!confirm('Remove this credential?'))return;
+  var k=btn.getAttribute('data-k');
+  var creds=Object.assign({},getCreds());
+  delete creds[k];
+  dbSet('credentials',Object.keys(creds).length?creds:null);
+  toast('🗑 Removed');
+}
+
+// ── QR CODE GRID ──────────────────────────────────────────────
+function drawQRGrid(){
+  var creds=getCreds();
+  var keys=Object.keys(creds);
+  var grid=document.getElementById('qr-grid');if(!grid)return;
+  if(!keys.length){
+    grid.innerHTML='<p style="font-size:.81rem;color:var(--tx2);">No credentials yet — add them in the Setup tab first.</p>';
+    return;
+  }
+  grid.innerHTML=keys.map(function(k){
+    var cr=creds[k];
+    return'<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">'
+      +'<div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:.88rem;color:var(--green);font-weight:600;">'+hx(cr.u)+'</div>'
+        +'<div style="font-size:.74rem;color:var(--tx2);margin-top:3px;">Tap Show QR → colleague scans to log in on their device</div>'
+      +'</div>'
+      +'<button class="btn bp sm" data-k="'+hx(k)+'" onclick="showQRModal(this)">📱 Show QR</button>'
+    +'</div>';
+  }).join('');
+}
+
+function showQRModal(btn){
+  var k=btn.getAttribute('data-k');
+  var creds=getCreds();
+  var cr=creds[k];if(!cr)return;
+  document.getElementById('m-qr-title').textContent='🔑 '+cr.u+' — Login QR Codes';
+  // clear previous
+  document.getElementById('m-qr-user').innerHTML='';
+  document.getElementById('m-qr-pass').innerHTML='';
+  document.getElementById('m-qr-user-lbl').textContent=cr.u;
+  openM('m-qr');
+  ensureQR(function(){
+    new QRCode(document.getElementById('m-qr-user'),{
+      text:cr.u, width:150, height:150,
+      colorDark:'#0a110d', colorLight:'#ffffff',
+      correctLevel:QRCode.CorrectLevel.M
+    });
+    new QRCode(document.getElementById('m-qr-pass'),{
+      text:cr.p, width:150, height:150,
+      colorDark:'#0a110d', colorLight:'#ffffff',
+      correctLevel:QRCode.CorrectLevel.M
+    });
+  });
+}
+function ensureQR(cb){
+  if(window.QRCode){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload=cb;document.head.appendChild(s);
 }
 
 // ── MODALS ────────────────────────────────────────────────────
