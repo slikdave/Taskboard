@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TaskBoard — Master</title>
+<title>GM Handover — Master</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0f14;--surf:#161920;--surf2:#1e2230;--bdr:#2a2f42;--blue:#5b8af5;--orange:#f5a623;--green:#4ecb71;--red:#f55b5b;--tx:#e8eaf2;--tx2:#8b92b3;--r:12px;}
+:root{--bg:#0a110d;--surf:#111a13;--surf2:#172010;--bdr:#1e3a22;--blue:#4ade80;--orange:#f5a623;--green:#4ade80;--red:#f55b5b;--tx:#e2f0e5;--tx2:#7aa882;--r:12px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh;}
 .overlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.spinner{width:38px;height:38px;border:3px solid var(--bdr);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+.spinner{width:38px;height:38px;border:3px solid var(--bdr);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ov-msg{font-family:'Syne',sans-serif;font-size:.95rem;color:var(--tx2);}
 .overlay.hidden{display:none;}
@@ -35,7 +35,7 @@ header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:14px 24
 main{padding:20px 24px;}
 .sec{display:none;}.sec.on{display:block;}
 .btn{padding:7px 15px;border-radius:7px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;transition:all .18s;}
-.bp{background:var(--blue);color:#fff;}.bp:hover{background:#3a6de0;}
+.bp{background:#16a34a;color:#fff;}.bp:hover{background:#15803d;}
 .bs{background:var(--surf2);color:var(--tx);border:1px solid var(--bdr);}.bs:hover{border-color:var(--blue);color:var(--blue);}
 .bd{background:var(--red);color:#fff;}
 .bg{background:var(--green);color:#000;}.bg:hover{background:#38b55a;}
@@ -115,7 +115,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 </div>
 
 <header>
-  <div class="logo">Task<span>Board</span><small>MASTER</small></div>
+  <div class="logo">GM <span>Handover</span><small>MASTER</small></div>
   <div class="hdr-r">
     <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
     <button class="btn bs sm" onclick="goTab('sync')">Share Companion ↗</button>
@@ -130,7 +130,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 <main>
   <div id="sec-board" class="sec on">
     <div class="sec-hdr">
-      <div><div class="sec-title">Daily Task Board</div><div class="sec-sub" id="bd-date"></div></div>
+      <div><div class="sec-title">GM Daily Handover Board</div><div class="sec-sub" id="bd-date"></div></div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;">
         <button class="btn bs sm" onclick="resetAll()">↺ Reset All</button>
         <button class="btn bg sm" onclick="ssAll()">📸 Screenshot All</button>
@@ -170,7 +170,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
     <div class="sec-title" style="margin-bottom:16px;">Sync &amp; Share</div>
     <div class="scard">
       <div style="font-weight:600;font-size:.9rem;margin-bottom:4px;">🔥 Firebase Connected</div>
-      <div style="font-size:.81rem;color:var(--tx2);">Project: <strong style="color:var(--tx)">gm-daily-handover-75156</strong> &nbsp;·&nbsp; Europe West 1 &nbsp;·&nbsp; Live sync</div>
+      <div style="font-size:.81rem;color:var(--tx2);">Project: <strong style="color:var(--tx)">GM Daily Handover</strong> &nbsp;·&nbsp; Europe West 1 &nbsp;·&nbsp; Live sync</div>
     </div>
     <div class="scard">
       <div style="font-weight:600;font-size:.9rem;margin-bottom:8px;">📱 Share Companion App</div>
@@ -231,7 +231,7 @@ var FB={
   messagingSenderId:"574134415721",
   appId:"1:574134415721:web:7a7dcbb7a78e0144f54df8"
 };
-var COLORS=['#5b8af5','#f5a623','#4ecb71','#e85b9a','#a78bfa','#fb923c'];
+var COLORS=['#4ade80','#86efac','#6ee7b7','#34d399','#a3e635','#bef264'];
 var DB='taskboard';
 var db,ref,state=null;
 

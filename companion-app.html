@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>TaskBoard — Companion</title>
+<title>GM Handover — Companion</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f0f4ff;--surf:#fff;--surf2:#f5f7ff;--bdr:#dce2f5;--acc:#4060e8;--grn:#22c55e;--red:#ef4444;--tx:#1a1d2e;--tx2:#6b7280;--r:14px;}
+:root{--bg:#f0faf4;--surf:#fff;--surf2:#f0faf4;--bdr:#bbf0d4;--acc:#16a34a;--grn:#22c55e;--red:#ef4444;--tx:#0d2016;--tx2:#4b7260;--r:14px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh;}
 .overlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
@@ -27,7 +27,7 @@ header{background:var(--acc);padding:15px 18px;display:flex;align-items:center;j
 .dot.syncing{background:#fde68a;animation:blink 1s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 main{padding:16px;max-width:480px;margin:0 auto;}
-.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:13px;box-shadow:0 2px 10px rgba(64,96,232,.05);}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:13px;box-shadow:0 2px 10px rgba(22,163,74,.08);}
 .ctitle{font-family:'Syne',sans-serif;font-weight:700;font-size:.93rem;margin-bottom:11px;}
 .usel-wrap{position:relative;}
 select{appearance:none;background:var(--surf2);border:2px solid var(--bdr);color:var(--tx);border-radius:10px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;width:100%;transition:border-color .2s;cursor:pointer;}
@@ -47,7 +47,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:5px 0 11px;}
 .chk:checked::after{content:'✓';position:absolute;top:1px;left:4px;color:#fff;font-size:.77rem;font-weight:700;}
 .tlbl{font-size:.87rem;flex:1;}
 .tlbl.done{text-decoration:line-through;color:var(--tx2);}
-.tpts{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--acc);background:rgba(64,96,232,.08);padding:2px 6px;border-radius:4px;}
+.tpts{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--acc);background:rgba(22,163,74,.1);padding:2px 6px;border-radius:4px;}
 .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .apill{padding:6px 14px;border-radius:20px;border:2px solid var(--bdr);font-size:.82rem;cursor:pointer;transition:all .15s;background:var(--surf2);color:var(--tx2);user-select:none;}
 .apill.on{color:#fff;}
@@ -59,7 +59,7 @@ textarea:focus{border-color:var(--acc);}
 .pthumb{width:66px;height:66px;border-radius:8px;object-fit:cover;border:2px solid var(--bdr);}
 input[type=file]{display:none;}
 .btn-sub{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:14px;font-size:.97rem;font-weight:600;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s;}
-.btn-sub:hover{background:#304fcc;}
+.btn-sub:hover{background:#15803d;}
 .btn-rst{background:var(--red);color:#fff;border:none;border-radius:10px;padding:12px;font-size:.9rem;font-weight:600;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;}
 .last-sub{font-size:.75rem;color:var(--tx2);text-align:center;margin-top:7px;}
 .no-user{text-align:center;padding:40px 20px;color:var(--tx2);}
@@ -83,7 +83,7 @@ input[type=file]{display:none;}
 </div>
 
 <header>
-  <div class="logo">TaskBoard<small>COMPANION</small></div>
+  <div class="logo">GM Handover<small>COMPANION</small></div>
   <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
 </header>
 
@@ -119,8 +119,14 @@ input[type=file]{display:none;}
     <!-- Areas -->
     <div class="card">
       <div class="ctitle">🗂️ Area Worked</div>
-      <p style="font-size:.81rem;color:var(--tx2);margin-bottom:6px;">Tap to select all areas worked today.</p>
-      <div class="pills" id="area-pills"></div>
+      <p style="font-size:.81rem;color:var(--tx2);margin-bottom:8px;">Select all areas worked today.</p>
+      <div class="usel-wrap" style="margin-bottom:10px;">
+        <select id="area-sel" onchange="addAreaFromDrop(this)">
+          <option value="">Add an area…</option>
+        </select>
+        <span class="sel-arr">▾</span>
+      </div>
+      <div id="area-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
 
     <!-- Notes -->
@@ -165,7 +171,7 @@ var FB={
   messagingSenderId:"574134415721",
   appId:"1:574134415721:web:7a7dcbb7a78e0144f54df8"
 };
-var COLORS=['#5b8af5','#f5a623','#4ecb71','#e85b9a','#a78bfa','#fb923c'];
+var COLORS=['#16a34a','#15803d','#166534','#14532d','#4d7c0f','#365314'];
 var DB='taskboard';
 var db,dbRef,liveState=null,ci=-1;
 
@@ -308,18 +314,27 @@ function render(){
     }).join('');
   }
 
-  // areas
-  var ap=document.getElementById('area-pills');
-  if(!areas.length){
-    ap.innerHTML='<p style="color:var(--tx2);font-size:.81rem;">No areas configured yet.</p>';
-  }else{
-    ap.innerHTML=areas.map(function(a,ai){
-      var sel=(col.areas||[]).indexOf(a)>=0;
-      return'<span class="apill'+(sel?' on':'')+'" style="'+(sel?'background:'+color+';border-color:'+color:'')
-        +'" data-ai="'+ai+'" onclick="tgArea(this)">'+hx(a)+'</span>';
-    }).join('');
+  // area dropdown options
+  var asel=document.getElementById('area-sel');
+  if(asel){
+    asel.innerHTML='<option value="">Add an area…</option>';
+    areas.forEach(function(a){
+      var o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);
+    });
   }
-
+  // selected area tags
+  var at=document.getElementById('area-tags');
+  if(at){
+    var selAreas=col.areas||[];
+    if(!selAreas.length){
+      at.innerHTML='<span style="font-size:.8rem;color:var(--tx2);">None selected</span>';
+    }else{
+      at.innerHTML=selAreas.map(function(a,ai){
+        return'<span style="display:inline-flex;align-items:center;gap:5px;background:var(--acc);color:#fff;padding:4px 10px;border-radius:20px;font-size:.8rem;">'
+          +hx(a)+'<button data-ai="'+ai+'" onclick="rmAreaTag(this)" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:.9rem;padding:0;line-height:1;">×</button></span>';
+      }).join('');
+    }
+  }
   // notes — only update if not currently focused (avoid caret jump)
   var nta=document.getElementById('notes');
   if(document.activeElement!==nta) nta.value=col.notes||'';
@@ -346,27 +361,25 @@ function tgTask(el){
   document.getElementById('score').textContent=s;
 }
 
-// ── AREA TOGGLE ───────────────────────────────────────────────
-function tgArea(el){
-  var ai=parseInt(el.getAttribute('data-ai'));
-  var areas=(liveState.areas||[]);
-  var area=areas[ai];
-  if(!area)return;
+// ── AREA DROPDOWN ─────────────────────────────────────────────
+function addAreaFromDrop(sel){
+  var area=sel.value; if(!area)return;
   var col=myCol();
   var cur=(col.areas||[]).slice();
-  var idx=cur.indexOf(area);
-  var color=COLORS[ci%COLORS.length];
-  if(idx>=0){
-    cur.splice(idx,1);
-    el.classList.remove('on');
-    el.style.background='';el.style.borderColor='';
-  }else{
+  if(cur.indexOf(area)<0){
     cur.push(area);
-    el.classList.add('on');
-    el.style.background=color;el.style.borderColor=color;
+    dbSet('columns/'+ci+'/areas',cur);
+    dbSet('columns/'+ci+'/submitted',false);
   }
-  dbSet('columns/'+ci+'/areas', cur.length?cur:null);
-  dbSet('columns/'+ci+'/submitted', false);
+  sel.value=''; // reset dropdown
+}
+function rmAreaTag(btn){
+  var ai=parseInt(btn.getAttribute('data-ai'));
+  var col=myCol();
+  var cur=(col.areas||[]).slice();
+  cur.splice(ai,1);
+  dbSet('columns/'+ci+'/areas',cur.length?cur:null);
+  dbSet('columns/'+ci+'/submitted',false);
 }
 
 // ── PHOTOS ────────────────────────────────────────────────────
