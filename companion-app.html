@@ -306,21 +306,27 @@ ldWithFallback(FB_APP_URLS,0,function(){
   },function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
 },function(){showErr('Could not load Firebase. Check your internet connection and try again.');});
 
-// ── CREDENTIALS (stored locally per device only) ────────────
-var CRED_KEY='gmh_cred_v1';
-function saveCred(u,p){localStorage.setItem(CRED_KEY,JSON.stringify({u:u,p:p}));}
-function loadCred(){try{return JSON.parse(localStorage.getItem(CRED_KEY)||'null');}catch(e){return null;}}
+// ── CREDENTIALS (stored locally per device, per user) ─────────
+var CRED_PREFIX='gmh_cred_u_';
+function credKey(idx){return CRED_PREFIX+idx;}
+function saveCred(u,p){localStorage.setItem(credKey(ci),JSON.stringify({u:u,p:p}));}
+function loadCred(){
+  if(ci<0)return null;
+  try{return JSON.parse(localStorage.getItem(credKey(ci))||'null');}catch(e){return null;}
+}
+function clearCredForUser(idx){localStorage.removeItem(CRED_PREFIX+idx);}
 function getCreds(){return(liveState&&liveState.credentials)||{};}
 
 function checkLogin(){
   var creds=getCreds();
-  // If no credentials configured in Firebase yet — always allow through
   if(!Object.keys(creds).length)return true;
-  // Credentials exist — must have a matching stored cred on this device
-  var cred=loadCred();
-  if(!cred)return false;
-  for(var k in creds){
-    if(creds[k].u===cred.u&&creds[k].p===cred.p)return true;
+  // check any stored cred on this device matches
+  for(var i=0;i<20;i++){
+    try{
+      var stored=JSON.parse(localStorage.getItem(CRED_PREFIX+i)||'null');
+      if(!stored)continue;
+      for(var k in creds){if(creds[k].u===stored.u&&creds[k].p===stored.p)return true;}
+    }catch(e){}
   }
   return false;
 }
@@ -335,10 +341,10 @@ function doLogin(){
   var p=document.getElementById('login-pass').value;
   if(!u||!p){showLoginErr('Please enter your username and password.');return;}
   var creds=getCreds();
-  if(!Object.keys(creds).length){saveCred(u,p);hideLoginScreen();return;}
+  if(!Object.keys(creds).length){hideLoginScreen();return;}
   var match=false;
   for(var k in creds){if(creds[k].u===u&&creds[k].p===p){match=true;break;}}
-  if(match){saveCred(u,p);hideLoginScreen();}
+  if(match){hideLoginScreen();}
   else showLoginErr('Incorrect username or password.');
 }
 function showLoginErr(m){var el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
@@ -421,8 +427,6 @@ function populateNames(){
 
 // ── SCREEN NAVIGATION ────────────────────────────────────────
 function goToTasks(){
-  // Wipe credentials once user proceeds to tasks
-  clearCreds();
   document.getElementById('screen-setup').style.display='none';
   document.getElementById('screen-tasks').style.display='block';
   window.scrollTo(0,0);
@@ -445,13 +449,27 @@ function onUser(){
   }
   document.getElementById('no-user').style.display='none';
   document.getElementById('cred-section').style.display='block';
-  // Always reset credentials when a new user is selected
-  clearCreds();
-  // update tasks screen label
+  // Update tasks screen label
   var names=(liveState&&liveState.names)||[];
   var name=names[ci]||'';
   var lbl=document.getElementById('tasks-user-label');
   if(lbl) lbl.textContent=name;
+  // Load this user's stored credentials if they exist on this device
+  var cred=loadCred();
+  if(cred){
+    // This user has creds stored on this device — show them
+    showSavedCredView(cred);
+    showCredQRs();
+  } else {
+    // No creds for this user — show blank input form
+    document.getElementById('cred-input-view').style.display='block';
+    document.getElementById('cred-saved-view').style.display='none';
+    document.getElementById('qr-creds-card').style.display='none';
+    document.getElementById('comp-qr-user').innerHTML='';
+    document.getElementById('comp-qr-pass').innerHTML='';
+    document.getElementById('cred-user').value='';
+    document.getElementById('cred-pass').value='';
+  }
 }
 
 function saveCredentials(){
@@ -472,7 +490,7 @@ function showSavedCredView(cred){
 }
 
 function clearCreds(){
-  localStorage.removeItem(CRED_KEY);
+  if(ci>=0) clearCredForUser(ci);
   document.getElementById('cred-saved-view').style.display='none';
   document.getElementById('cred-input-view').style.display='block';
   document.getElementById('qr-creds-card').style.display='none';
