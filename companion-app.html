@@ -135,6 +135,13 @@ input[type=file]{display:none;}
       </div>
     </div>
 
+    <!-- Direct to tasks shortcut (shown after name selected) -->
+    <div id="goto-tasks-direct" style="display:none;margin-bottom:14px;">
+      <button onclick="goToTasks()" style="background:#15803d;color:#fff;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.01em;box-shadow:0 2px 8px rgba(21,128,61,0.35);">
+        📋 Go Straight to Daily Tasks →
+      </button>
+    </div>
+
     <!-- Step 2: Credentials (shown after name selected) -->
     <div id="cred-section" style="display:none;">
       <div class="card">
@@ -422,7 +429,11 @@ function populateNames(){
       var o=document.createElement('option');o.value=i;o.textContent=n;sel.appendChild(o);
     }
   });
-  if(prev!=='')sel.value=prev;
+  if(prev!==''){
+    sel.value=prev;
+    // If a name is already selected, trigger the UI update
+    if(sel.value!=='') onUser();
+  }
 }
 
 // ── SCREEN NAVIGATION ────────────────────────────────────────
@@ -444,11 +455,13 @@ function onUser(){
   ci=v!==''?parseInt(v):-1;
   if(ci<0){
     document.getElementById('cred-section').style.display='none';
+    document.getElementById('goto-tasks-direct').style.display='none';
     document.getElementById('no-user').style.display='block';
     return;
   }
   document.getElementById('no-user').style.display='none';
   document.getElementById('cred-section').style.display='block';
+  document.getElementById('goto-tasks-direct').style.display='block';
   // Update tasks screen label
   var names=(liveState&&liveState.names)||[];
   var name=names[ci]||'';
