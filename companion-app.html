@@ -25,7 +25,7 @@ body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-h
 .err-box h2{color:var(--red);font-family:'Syne',sans-serif;margin-bottom:8px;}
 .err-box p{color:var(--tx2);font-size:.85rem;line-height:1.6;}
 .err-box a{color:var(--acc);}
-header{background:var(--acc);padding:15px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+header{background:var(--acc);padding:15px 18px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;position:sticky;top:0;z-index:100;}
 .logo{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-.02em;}
 .logo small{font-size:.6rem;color:rgba(255,255,255,.6);font-weight:400;font-family:'DM Mono',monospace;margin-left:6px;}
 .pill{background:rgba(255,255,255,.15);color:#fff;padding:4px 12px;border-radius:20px;font-size:.74rem;display:flex;align-items:center;gap:6px;}
@@ -115,7 +115,7 @@ input[type=file]{display:none;}
 </div>
 
 <header>
-  <div><div class="logo">GM Handover<small>COMPANION</small></div><div id="hdr-date" style="font-size:.68rem;color:rgba(255,255,255,.7);margin-top:1px;font-family:'DM Mono',monospace;"></div></div>
+  <div><div class="logo">GM Handover<small>COMPANION</small></div><div id="hdr-date" style="font-size:.82rem;color:rgba(255,255,255,.95);margin-top:2px;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.01em;"></div></div>
   <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
 </header>
 
@@ -137,7 +137,7 @@ input[type=file]{display:none;}
 
     <!-- Direct to tasks shortcut (shown after name selected) -->
     <div id="goto-tasks-direct" style="display:none;margin-bottom:14px;">
-      <button onclick="goToTasks()" style="background:#15803d;color:#fff;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.01em;box-shadow:0 2px 8px rgba(21,128,61,0.35);">
+      <button onclick="goToTasks()" style="background:#2563eb;color:#fff;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:700;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.01em;box-shadow:0 2px 8px rgba(37,99,235,0.35);">
         📋 Go Straight to Daily Tasks →
       </button>
     </div>
