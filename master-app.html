@@ -110,26 +110,6 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 <body>
 
 
-<!-- LOGIN SCREEN -->
-<div class="overlay hidden" id="ov-login">
-  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:18px;padding:28px;max-width:340px;width:90%;">
-    <div style="text-align:center;margin-bottom:20px;">
-      <div style="width:60px;height:60px;background:linear-gradient(135deg,#3a7a40,#2d6232);border-radius:14px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#4ade80;font-weight:900;font-family:Arial Black,sans-serif;">GM</div>
-      <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--tx);">GM Handover</div>
-      <div style="font-size:.78rem;color:var(--tx2);margin-top:2px;">Master App</div>
-    </div>
-    <div id="login-err" style="background:rgba(245,91,91,.1);border:1px solid var(--red);border-radius:8px;padding:8px 12px;font-size:.81rem;color:var(--red);margin-bottom:12px;display:none;"></div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:.8rem;font-weight:600;color:var(--tx);display:block;margin-bottom:4px;">Username</label>
-      <input type="text" id="login-user" placeholder="Enter username…" autocomplete="username">
-    </div>
-    <div style="margin-bottom:18px;">
-      <label style="font-size:.8rem;font-weight:600;color:var(--tx);display:block;margin-bottom:4px;">Password</label>
-      <input type="password" id="login-pass" placeholder="Enter password…" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button onclick="doLogin()" class="btn bp" style="width:100%;padding:12px;font-size:.95rem;">Sign In</button>
-  </div>
-</div>
 
 <div class="overlay" id="ov-load">
   <div class="spinner"></div>
@@ -193,15 +173,6 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
       <button class="btn bp sm" onclick="addArea()">Add</button>
     </div>
     <div class="atags" id="atags"></div>
-  <hr class="div">
-    <h3 style="font-family:'Syne',sans-serif;margin-bottom:6px;">🔐 App Credentials</h3>
-    <p style="color:var(--tx2);font-size:.83rem;margin-bottom:11px;">Add username/password pairs for staff. Each person uses their own to log in. QR codes are generated in the Sync &amp; Share tab.</p>
-    <div class="addrow" style="max-width:500px;">
-      <input type="text" id="new-cred-u" placeholder="Username…" style="flex:1;">
-      <input type="password" id="new-cred-p" placeholder="Password…" style="flex:1;">
-      <button class="btn bp sm" onclick="addCred()">Add</button>
-    </div>
-    <div class="tlist" id="cred-list" style="margin-top:10px;max-width:500px;"></div>
   </div>
 
   <div id="sec-sync" class="sec">
@@ -220,7 +191,13 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
     <div style="display:flex;flex-wrap:wrap;gap:9px;" id="ss-btns"></div>
     <hr class="div">
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:11px;">🔑 Staff Login QR Codes</h3>
-    <p style="font-size:.81rem;color:var(--tx2);margin-bottom:14px;">Tap <strong>Show QR</strong> next to any staff member to display their username and password as separate QR codes — scannable by any external system.</p>
+    <p style="font-size:.81rem;color:var(--tx2);margin-bottom:12px;">Add staff credentials here to generate their QR codes. QR codes encode the username and password separately for use with external systems.</p>
+    <div class="addrow" style="max-width:500px;margin-bottom:10px;">
+      <input type="text" id="new-cred-u" placeholder="Username…" style="flex:1;">
+      <input type="password" id="new-cred-p" placeholder="Password…" style="flex:1;">
+      <button class="btn bp sm" onclick="addCred()">Add</button>
+    </div>
+    <div class="tlist" id="cred-list" style="margin-bottom:14px;max-width:500px;"></div>
     <div id="qr-grid" style="display:flex;flex-direction:column;gap:10px;max-width:500px;"></div>
     <hr class="div">
     <h3 style="font-family:'Syne',sans-serif;margin-bottom:9px;">📊 Today's Summary</h3>
@@ -358,7 +335,6 @@ function startApp(){
     ref.on('value',function(snap){
       state=snap.val()||{};
       document.getElementById('ov-load').classList.add('hidden');
-      if(!checkMasterLogin()){showMLoginScreen();return;}
       syncUI('on');
       redraw();
     },function(err){
@@ -370,8 +346,8 @@ function startApp(){
 
 function redraw(){
   if(document.getElementById('sec-board').classList.contains('on')) drawBoard();
-  if(document.getElementById('sec-setup').classList.contains('on')){drawSetup();drawCredList();}
-  if(document.getElementById('sec-sync').classList.contains('on')){drawSync();drawQRGrid();}
+  if(document.getElementById('sec-setup').classList.contains('on')) drawSetup();
+  if(document.getElementById('sec-sync').classList.contains('on')){drawSync();drawCredList();drawQRGrid();}
 }
 
 function dbSet(path,val){db.ref(DB+'/'+path).set(val);}
@@ -655,41 +631,8 @@ function dlSS(){
   var a=document.createElement('a');a.href=_curSS;a.download='taskboard-'+Date.now()+'.png';a.click();
 }
 
-// ── LOGIN ─────────────────────────────────────────────────────
-var MCRED_KEY='gmh_master_cred_v1';
-function saveMCred(u,p){localStorage.setItem(MCRED_KEY,JSON.stringify({u:u,p:p}));}
-function loadMCred(){try{return JSON.parse(localStorage.getItem(MCRED_KEY)||'null');}catch(e){return null;}}
+// ── CREDENTIALS (for QR generation only — no login) ──────────
 function getCreds(){return(state&&state.credentials)||{};}
-function checkMasterLogin(){
-  var cred=loadMCred();
-  var creds=getCreds();
-  if(!Object.keys(creds).length)return true;
-  if(!cred)return false;
-  for(var k in creds){if(creds[k].u===cred.u&&creds[k].p===cred.p)return true;}
-  return false;
-}
-function showMLoginScreen(){
-  document.getElementById('ov-load').classList.add('hidden');
-  document.getElementById('ov-login').classList.remove('hidden');
-}
-function doLogin(){
-  var u=document.getElementById('login-user').value.trim();
-  var p=document.getElementById('login-pass').value;
-  if(!u||!p){showMLoginErr('Please enter username and password.');return;}
-  var creds=getCreds();
-  if(!Object.keys(creds).length){saveMCred(u,p);hideMLoginScreen();return;}
-  var ok=false;
-  for(var k in creds){if(creds[k].u===u&&creds[k].p===p){ok=true;break;}}
-  if(ok){saveMCred(u,p);hideMLoginScreen();}
-  else showMLoginErr('Incorrect username or password.');
-}
-function showMLoginErr(m){var el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
-function hideMLoginScreen(){
-  document.getElementById('ov-login').classList.add('hidden');
-  document.getElementById('ov-load').classList.add('hidden');
-  syncUI('on');
-  redraw();
-}
 
 // ── CREDENTIALS SETUP ─────────────────────────────────────────
 function drawCredList(){
