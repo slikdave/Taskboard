@@ -248,12 +248,25 @@ input[type=file]{display:none;}
       <textarea id="notes" placeholder="Any additional tasks, observations, or notes…"></textarea>
     </div>
 
-    <!-- Photos -->
+    <!-- Photos Before & After -->
     <div class="card">
-      <div class="ctitle">📷 Photos of Completed Work</div>
-      <label class="photo-btn" for="photo-inp">📎&nbsp; Tap to add photos…</label>
-      <input type="file" id="photo-inp" accept="image/*" multiple onchange="addPhotos(this)">
-      <div class="pgrid" id="photo-grid"></div>
+      <div class="ctitle">📷 Photos</div>
+
+      <!-- Before -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.8rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">📸 Before</div>
+        <label class="photo-btn" for="photo-inp-before">📎&nbsp; Add Before photo…</label>
+        <input type="file" id="photo-inp-before" accept="image/*" multiple onchange="addPhotos(this,'before')">
+        <div class="pgrid" id="photo-grid-before"></div>
+      </div>
+
+      <!-- After -->
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">✅ After</div>
+        <label class="photo-btn" for="photo-inp-after">📎&nbsp; Add After photo…</label>
+        <input type="file" id="photo-inp-after" accept="image/*" multiple onchange="addPhotos(this,'after')">
+        <div class="pgrid" id="photo-grid-after"></div>
+      </div>
     </div>
 
     <!-- Submit -->
@@ -596,10 +609,15 @@ function render(){
   var nta=document.getElementById('notes');
   if(document.activeElement!==nta) nta.value=col.notes||'';
 
-  // photos
-  document.getElementById('photo-grid').innerHTML=(col.photos||[]).map(function(src){
+  // photos - before & after
+  var photosBefore=(col.photosBefore||[]);
+  var photosAfter=(col.photosAfter||[]);
+  document.getElementById('photo-grid-before').innerHTML=photosBefore.map(function(src){
     return'<img src="'+src+'" class="pthumb">';
-  }).join('');
+  }).join('') || '<p style="font-size:.78rem;color:var(--tx2);margin-top:4px;">None added yet.</p>';
+  document.getElementById('photo-grid-after').innerHTML=photosAfter.map(function(src){
+    return'<img src="'+src+'" class="pthumb">';
+  }).join('') || '<p style="font-size:.78rem;color:var(--tx2);margin-top:4px;">None added yet.</p>';
 }
 
 // ── TASK TOGGLE ───────────────────────────────────────────────
@@ -640,8 +658,9 @@ function rmAreaTag(btn){
 }
 
 // ── PHOTOS ────────────────────────────────────────────────────
-function addPhotos(input){
+function addPhotos(input, type){
   var files=Array.from(input.files);if(!files.length)return;
+  var dbKey=type==='after'?'photosAfter':'photosBefore';
   var pending=files.length;
   files.forEach(function(file){
     var reader=new FileReader();
@@ -655,9 +674,9 @@ function addPhotos(input){
         canvas.getContext('2d').drawImage(img,0,0,w,h);
         var data=canvas.toDataURL('image/jpeg',0.75);
         var col=myCol();
-        dbSet('columns/'+ci+'/photos',(col.photos||[]).concat([data]));
+        dbSet('columns/'+ci+'/'+dbKey,(col[dbKey]||[]).concat([data]));
         dbSet('columns/'+ci+'/submitted',false);
-        pending--;if(pending===0)showToast('📷 Photo added!');
+        pending--;if(pending===0)showToast('📷 '+(type==='after'?'After':'Before')+' photo added!');
       };
       img.src=e.target.result;
     };
@@ -677,7 +696,7 @@ function submitActivity(){
 // ── RESET ─────────────────────────────────────────────────────
 function resetActivity(){
   if(!confirm('Reset ALL your activity for today?\nThis will clear:\n• All ticked tasks\n• All areas selected\n• Notes\n• Photos\n\nThis cannot be undone.'))return;
-  dbUpd('columns/'+ci,{tasks:null,areas:null,notes:'',photos:null,submitted:false,lastSubmit:null});
+  dbUpd('columns/'+ci,{tasks:null,areas:null,notes:'',photos:null,photosBefore:null,photosAfter:null,submitted:false,lastSubmit:null});
   // also clear local UI immediately
   document.getElementById('notes').value='';
   document.getElementById('photo-grid').innerHTML='';

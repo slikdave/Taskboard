@@ -260,7 +260,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
       <h3 style="margin:0;" id="m-notes-title">Notes / Ad-hoc Tasks</h3>
       <button class="btn bs sm" onclick="closeM('m-notes')">✕ Close</button>
     </div>
-    <div id="m-notes-body" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:16px;font-size:1rem;line-height:1.7;color:var(--tx);white-space:pre-wrap;max-height:480px;overflow-y:auto;min-height:100px;"></div>
+    <div id="m-notes-body" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:18px;font-size:1.15rem;line-height:1.8;color:var(--tx);white-space:pre-wrap;max-height:480px;overflow-y:auto;min-height:100px;"></div>
     <div style="font-size:.78rem;color:var(--tx2);margin-top:10px;text-align:center;">Read-only view · Edit in the Companion App</div>
   </div>
 </div>
@@ -436,10 +436,22 @@ function drawBoard(){
         +'<button data-ci="'+ci+'" data-ai="'+ai+'" onclick="rmArea(this)" title="Remove">×</button></span>';
     }).join('');
 
-    // photos
-    var ph=(col.photos||[]).map(function(src,pi){
-      return'<img src="'+src+'" class="pthumb" data-ci="'+ci+'" data-pi="'+pi+'" onclick="openGallery('+ci+','+pi+')" title="Click to view photos">';
+    // photos - before & after
+    var photosBefore=(col.photosBefore||[]);
+    var photosAfter=(col.photosAfter||[]);
+    var phBefore=photosBefore.map(function(src,pi){
+      return'<img src="'+src+'" class="pthumb" onclick="openGallery('+ci+','+pi+',\'before\')" title="Click to view">';
     }).join('');
+    var phAfter=photosAfter.map(function(src,pi){
+      return'<img src="'+src+'" class="pthumb" onclick="openGallery('+ci+','+pi+',\'after\')" title="Click to view">';
+    }).join('');
+    var ph=(photosBefore.length||photosAfter.length)?
+      '<div>'
+        +'<div class="stitle">Photos <span style="font-size:.68rem;color:var(--green);">(click to view)</span></div>'
+        +(photosBefore.length?'<div style="font-size:.74rem;font-weight:700;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">📸 Before</div><div class="pgrid">'+phBefore+'</div>':'')
+        +(photosAfter.length?'<div style="font-size:.74rem;font-weight:700;color:var(--green);margin-top:8px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">✅ After</div><div class="pgrid">'+phAfter+'</div>':'')
+      +'</div>'
+      :'';
 
     el.innerHTML=
       '<div class="col-bar" style="background:'+c+'"></div>'
@@ -461,7 +473,7 @@ function drawBoard(){
           +'<div class="stitle">Notes / Ad-hoc <span style="font-size:.68rem;color:var(--green);cursor:pointer;" onclick="openNotes('+ci+',\''+hx(name)+'\')">↗ expand</span></div>'
           +'<textarea class="nta" placeholder="No notes yet…" readonly onclick="openNotes('+ci+',\''+hx(name)+'\')" title="Click to expand notes">'+hx(col.notes||'')+'</textarea>'
         +'</div>'
-        +(ph?'<div><div class="stitle">Photos <span style="font-size:.68rem;color:var(--green);">(click to view)</span></div><div class="pgrid">'+ph+'</div></div>':'')
+        +(ph?ph:'')
       +'</div>'
       +'<div class="col-ft">'
         +'<div class="ft-areas"><strong>Areas:</strong> '+((col.areas||[]).map(hx).join(', ')||'—')+'</div>'
@@ -757,13 +769,15 @@ function ensureQR(cb){
 
 // ── PHOTO GALLERY ─────────────────────────────────────────────
 var _galleryPhotos=[], _galleryIdx=0;
-function openGallery(ci, startIdx){
-  var photos=((state.columns||{})[ci]||{}).photos||[];
+function openGallery(ci, startIdx, type){
+  var col=(state.columns||{})[ci]||{};
+  var photos=type==='after'?(col.photosAfter||[]):(col.photosBefore||col.photos||[]);
   if(!photos.length) return;
   _galleryPhotos=photos;
   _galleryIdx=startIdx||0;
   var name=(state.names||[])[ci]||'';
-  document.getElementById('m-gallery-title').textContent=name+' — Photos';
+  var label=type==='after'?' — After Photos':' — Before Photos';
+  document.getElementById('m-gallery-title').textContent=name+label;
   renderGallery();
   openM('m-gallery');
 }
