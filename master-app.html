@@ -107,11 +107,20 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 .ssimg{width:100%;border-radius:7px;margin-top:11px;border:1px solid var(--bdr);max-height:380px;object-fit:contain;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--surf);border:1px solid var(--blue);border-radius:9px;padding:10px 16px;font-size:.84rem;color:var(--tx);z-index:9999;transform:translateY(70px);opacity:0;transition:all .3s;}
 .toast.on{transform:translateY(0);opacity:1;}
+
+/* Submission notification banner */
+.notif-banner{position:fixed;top:0;left:0;right:0;z-index:9998;display:flex;flex-direction:column;gap:6px;padding:10px 16px;pointer-events:none;}
+.notif{background:var(--green);color:#000;border-radius:10px;padding:12px 18px;font-size:.92rem;font-weight:600;font-family:'Syne',sans-serif;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.35);pointer-events:all;transform:translateY(-80px);opacity:0;transition:all .4s cubic-bezier(.34,1.56,.64,1);}
+.notif.show{transform:translateY(0);opacity:1;}
+.notif .notif-name{font-size:1.05rem;}
+.notif .notif-close{margin-left:auto;background:rgba(0,0,0,.15);border:none;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.82rem;color:#000;pointer-events:all;}
 </style>
 </head>
 <body>
 
 
+
+<div class="notif-banner" id="notif-banner"></div>
 
 <div class="overlay" id="ov-load">
   <div class="spinner"></div>
@@ -358,6 +367,7 @@ function startApp(){
     db=firebase.database();
     ref=db.ref(DB);
     syncUI('syncing');
+    watchSubmissions();
     ref.once('value',function(snap){
       if(!snap.exists()){
         ref.set({
@@ -370,6 +380,15 @@ function startApp(){
     });
     ref.on('value',function(snap){
       state=snap.val()||{};
+      // Seed lastSubmit times on first load so we don't fire stale notifications
+      if(!_appReady){
+        var cols=(state.columns)||{};
+        Object.keys(cols).forEach(function(ci){
+          if(cols[ci]&&cols[ci].lastSubmit){
+            _lastSubmitTimes[ci]=cols[ci].lastSubmit;
+          }
+        });
+      }
       document.getElementById('ov-load').classList.add('hidden');
       syncUI('on');
       redraw();
@@ -767,7 +786,61 @@ function ensureQR(cb){
   s.onload=cb;document.head.appendChild(s);
 }
 
-// ── PHOTO GALLERY ─────────────────────────────────────────────
+// ── SUBMISSION NOTIFICATIONS ──────────────────────────────────
+var _lastSubmitTimes = {}; // track lastSubmit per column to detect new ones
+
+function watchSubmissions(){
+  // Watch columns node for any changes
+  db.ref(DB+'/columns').on('child_changed', function(snap){
+    var ci = snap.key;
+    var col = snap.val()||{};
+    if(!col.submitted || !col.lastSubmit) return;
+    // Only fire if this is a NEW submission (timestamp changed)
+    if(_lastSubmitTimes[ci] && _lastSubmitTimes[ci] === col.lastSubmit) return;
+    _lastSubmitTimes[ci] = col.lastSubmit;
+    // Don't fire on initial load (within 3s of app start)
+    if(!_appReady) return;
+    var name = (state&&state.names&&state.names[ci]) || 'Colleague';
+    showSubmitNotif(name, ci);
+  });
+}
+
+var _appReady = false;
+setTimeout(function(){ _appReady = true; }, 3000);
+
+function showSubmitNotif(name, ci){
+  var banner = document.getElementById('notif-banner');
+  var notif = document.createElement('div');
+  notif.className = 'notif';
+  notif.innerHTML = '<span style="font-size:1.2rem;">✅</span>'
+    + '<span>Daily tasks submitted by <span class="notif-name">' + hx(name) + '</span></span>'
+    + '<button class="notif-close" onclick="dismissNotif(this)">✕</button>';
+  banner.appendChild(notif);
+  // Animate in
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ notif.classList.add('show'); });
+  });
+  // Auto dismiss after 8 seconds
+  setTimeout(function(){ dismissNotif(notif.querySelector('.notif-close')); }, 8000);
+  // Play a subtle sound if supported
+  try{
+    var ctx = new (window.AudioContext||window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime+0.05);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime+0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+function dismissNotif(btn){
+  var notif = btn.closest ? btn.closest('.notif') : btn.parentNode;
+  notif.classList.remove('show');
+  setTimeout(function(){ if(notif.parentNode) notif.parentNode.removeChild(notif); }, 400);
+}
 var _galleryPhotos=[], _galleryIdx=0;
 function openGallery(ci, startIdx, type){
   var col=(state.columns||{})[ci]||{};
