@@ -137,6 +137,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
 <header>
   <div class="logo">GM <span>Handover</span><small>MASTER</small></div>
   <div class="hdr-r">
+    <button id="notif-enable-btn" class="btn bs sm" onclick="enableNotifications()" title="Enable sound &amp; notifications" style="display:none;">🔔 Enable Alerts</button>
     <div class="pill"><div class="dot syncing" id="sdot"></div><span id="slbl">Connecting…</span></div>
     <button class="btn bs sm" onclick="goTab('sync')">Share Companion ↗</button>
   </div>
@@ -786,54 +787,135 @@ function ensureQR(cb){
   s.onload=cb;document.head.appendChild(s);
 }
 
-// ── SUBMISSION NOTIFICATIONS ──────────────────────────────────
-var _lastSubmitTimes = {}; // track lastSubmit per column to detect new ones
+// ── NOTIFICATIONS & SOUND ────────────────────────────────────
+var _lastSubmitTimes = {};
+var _audioCtx = null;
+var _audioUnlocked = false;
+var _notifPermission = 'default';
+
+// Show enable button after app is ready
+function showEnableBtn(){
+  var btn = document.getElementById('notif-enable-btn');
+  if(!btn) return;
+  // Show if audio not unlocked OR notifications not granted
+  if(!_audioUnlocked || _notifPermission !== 'granted'){
+    btn.style.display = 'block';
+  }
+}
+
+function enableNotifications(){
+  // 1. Unlock AudioContext with user gesture
+  unlockAudio();
+  // 2. Request browser notification permission
+  if('Notification' in window && Notification.permission !== 'granted'){
+    Notification.requestPermission().then(function(result){
+      _notifPermission = result;
+      if(result === 'granted'){
+        toast('🔔 Notifications enabled!');
+        document.getElementById('notif-enable-btn').style.display = 'none';
+      } else {
+        toast('⚠️ Notification permission denied — banner alerts still work');
+        document.getElementById('notif-enable-btn').style.display = 'none';
+      }
+    });
+  } else {
+    _notifPermission = Notification ? Notification.permission : 'denied';
+    document.getElementById('notif-enable-btn').style.display = 'none';
+    toast('🔔 Sound enabled!');
+  }
+}
+
+function unlockAudio(){
+  if(_audioUnlocked) return;
+  try{
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Play a silent buffer to unlock
+    var buf = _audioCtx.createBuffer(1, 1, 22050);
+    var src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_audioCtx.destination);
+    src.start(0);
+    _audioUnlocked = true;
+  }catch(e){ console.warn('Audio unlock failed:', e); }
+}
+
+function playChime(){
+  if(!_audioUnlocked || !_audioCtx) return;
+  try{
+    // Resume context if suspended (Safari suspends after inactivity)
+    if(_audioCtx.state === 'suspended'){
+      _audioCtx.resume().then(function(){ _playChimeNow(); });
+    } else {
+      _playChimeNow();
+    }
+  }catch(e){}
+}
+
+function _playChimeNow(){
+  // Two-tone pleasant chime: G5 then B5
+  var notes = [784, 988];
+  notes.forEach(function(freq, i){
+    var osc = _audioCtx.createOscillator();
+    var gain = _audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(_audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    var start = _audioCtx.currentTime + i * 0.18;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.22, start + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.55);
+    osc.start(start);
+    osc.stop(start + 0.6);
+  });
+}
+
+function sendDeviceNotification(name){
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{
+      new Notification('GM Handover — Submission', {
+        body: name + ' has submitted their daily tasks ✅',
+        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExNSIgZmlsbD0iIzE1ODAzZCIvPjx0ZXh0IHg9IjI1NiIgeT0iMzEwIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2siIGZvbnQtc2l6ZT0iMjIwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+R008L3RleHQ+PC9zdmc+',
+        tag: 'gmh-submission',
+        requireInteraction: false
+      });
+    }catch(e){}
+  }
+}
 
 function watchSubmissions(){
-  // Watch columns node for any changes
   db.ref(DB+'/columns').on('child_changed', function(snap){
     var ci = snap.key;
     var col = snap.val()||{};
     if(!col.submitted || !col.lastSubmit) return;
-    // Only fire if this is a NEW submission (timestamp changed)
     if(_lastSubmitTimes[ci] && _lastSubmitTimes[ci] === col.lastSubmit) return;
     _lastSubmitTimes[ci] = col.lastSubmit;
-    // Don't fire on initial load (within 3s of app start)
     if(!_appReady) return;
-    var name = (state&&state.names&&state.names[ci]) || 'Colleague';
+    var name = (state&&state.names&&state.names[ci]) || 'A colleague';
     showSubmitNotif(name, ci);
+    playChime();
+    sendDeviceNotification(name);
   });
 }
 
 var _appReady = false;
-setTimeout(function(){ _appReady = true; }, 3000);
+setTimeout(function(){ _appReady = true; showEnableBtn(); }, 3000);
 
 function showSubmitNotif(name, ci){
   var banner = document.getElementById('notif-banner');
   var notif = document.createElement('div');
   notif.className = 'notif';
-  notif.innerHTML = '<span style="font-size:1.2rem;">✅</span>'
-    + '<span>Daily tasks submitted by <span class="notif-name">' + hx(name) + '</span></span>'
+  notif.innerHTML = '<span style="font-size:1.3rem;">✅</span>'
+    + '<div style="flex:1;">'
+    +   '<div style="font-size:1rem;font-weight:700;">'+hx(name)+' submitted!</div>'
+    +   '<div style="font-size:.82rem;font-weight:400;opacity:.85;">Daily tasks submitted · '+new Date().toLocaleTimeString()+'</div>'
+    + '</div>'
     + '<button class="notif-close" onclick="dismissNotif(this)">✕</button>';
   banner.appendChild(notif);
-  // Animate in
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){ notif.classList.add('show'); });
   });
-  // Auto dismiss after 8 seconds
-  setTimeout(function(){ dismissNotif(notif.querySelector('.notif-close')); }, 8000);
-  // Play a subtle sound if supported
-  try{
-    var ctx = new (window.AudioContext||window.webkitAudioContext)();
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime+0.05);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime+0.4);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
-  }catch(e){}
+  setTimeout(function(){ dismissNotif(notif.querySelector('.notif-close')); }, 10000);
 }
 
 function dismissNotif(btn){
@@ -888,7 +970,11 @@ function openNotes(ci, name){
 // ── MODALS ────────────────────────────────────────────────────
 function openM(id){document.getElementById(id).classList.add('on');}
 function closeM(id){document.getElementById(id).classList.remove('on');}
-document.addEventListener('click',function(e){if(e.target.classList.contains('mbg'))e.target.classList.remove('on');});
+document.addEventListener('click',function(e){
+  if(e.target.classList.contains('mbg'))e.target.classList.remove('on');
+  // Unlock audio on first user interaction anywhere on the page
+  if(!_audioUnlocked) unlockAudio();
+});
 
 // ── TOAST ─────────────────────────────────────────────────────
 var _tt;
