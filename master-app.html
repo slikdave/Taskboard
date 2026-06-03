@@ -791,96 +791,117 @@ function ensureQR(cb){
 var _lastSubmitTimes = {};
 var _audioCtx = null;
 var _audioUnlocked = false;
-var _notifPermission = 'default';
+var _notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'denied';
 
-// Show enable button after app is ready
 function showEnableBtn(){
   var btn = document.getElementById('notif-enable-btn');
   if(!btn) return;
-  // Show if audio not unlocked OR notifications not granted
-  if(!_audioUnlocked || _notifPermission !== 'granted'){
-    btn.style.display = 'block';
-  }
+  btn.style.display = 'block';
 }
 
 function enableNotifications(){
-  // 1. Unlock AudioContext with user gesture
-  unlockAudio();
-  // 2. Request browser notification permission
-  if('Notification' in window && Notification.permission !== 'granted'){
-    Notification.requestPermission().then(function(result){
-      _notifPermission = result;
-      if(result === 'granted'){
-        toast('🔔 Notifications enabled!');
-        document.getElementById('notif-enable-btn').style.display = 'none';
-      } else {
-        toast('⚠️ Notification permission denied — banner alerts still work');
-        document.getElementById('notif-enable-btn').style.display = 'none';
-      }
-    });
-  } else {
-    _notifPermission = Notification ? Notification.permission : 'denied';
-    document.getElementById('notif-enable-btn').style.display = 'none';
-    toast('🔔 Sound enabled!');
-  }
-}
-
-function unlockAudio(){
-  if(_audioUnlocked) return;
+  // Step 1 — unlock audio with this user gesture
   try{
-    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Play a silent buffer to unlock
-    var buf = _audioCtx.createBuffer(1, 1, 22050);
+    if(!_audioCtx){
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(_audioCtx.state === 'suspended'){
+      _audioCtx.resume();
+    }
+    // Play a real (silent-ish) buffer to fully unlock Safari
+    var buf = _audioCtx.createBuffer(1, _audioCtx.sampleRate * 0.1, _audioCtx.sampleRate);
     var src = _audioCtx.createBufferSource();
     src.buffer = buf;
     src.connect(_audioCtx.destination);
     src.start(0);
     _audioUnlocked = true;
-  }catch(e){ console.warn('Audio unlock failed:', e); }
+    // Play test chime immediately so user knows it works
+    setTimeout(function(){ _playChimeNow(); }, 100);
+  }catch(e){ console.warn('Audio init failed:', e); }
+
+  // Step 2 — request notification permission
+  if(typeof Notification !== 'undefined' && Notification.permission !== 'granted'){
+    Notification.requestPermission().then(function(result){
+      _notifPermission = result;
+      document.getElementById('notif-enable-btn').style.display = 'none';
+      if(result === 'granted'){
+        toast('🔔 Alerts enabled — sound + notifications active!');
+      } else {
+        toast('🔔 Sound enabled — tap Allow next time for device notifications');
+      }
+    }).catch(function(){
+      // iOS older — requestPermission may not return a promise
+      document.getElementById('notif-enable-btn').style.display = 'none';
+      toast('🔔 Sound enabled!');
+    });
+  } else {
+    _notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'denied';
+    document.getElementById('notif-enable-btn').style.display = 'none';
+    toast('🔔 Alerts enabled!');
+  }
 }
 
-function playChime(){
-  if(!_audioUnlocked || !_audioCtx) return;
+// Keep AudioContext alive — Safari suspends after ~30s inactivity
+// Play a completely silent buffer every 25 seconds
+function keepAudioAlive(){
+  if(!_audioCtx || !_audioUnlocked) return;
   try{
-    // Resume context if suspended (Safari suspends after inactivity)
+    if(_audioCtx.state === 'suspended'){ _audioCtx.resume(); }
+    var buf = _audioCtx.createBuffer(1, 1, _audioCtx.sampleRate);
+    var src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_audioCtx.destination);
+    src.start(0);
+  }catch(e){}
+}
+setInterval(keepAudioAlive, 25000);
+
+function playChime(){
+  if(!_audioUnlocked || !_audioCtx){ return; }
+  try{
     if(_audioCtx.state === 'suspended'){
       _audioCtx.resume().then(function(){ _playChimeNow(); });
     } else {
       _playChimeNow();
     }
-  }catch(e){}
+  }catch(e){ console.warn('playChime error:', e); }
 }
 
 function _playChimeNow(){
-  // Two-tone pleasant chime: G5 then B5
-  var notes = [784, 988];
-  notes.forEach(function(freq, i){
-    var osc = _audioCtx.createOscillator();
-    var gain = _audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(_audioCtx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    var start = _audioCtx.currentTime + i * 0.18;
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.22, start + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.55);
-    osc.start(start);
-    osc.stop(start + 0.6);
-  });
+  try{
+    var now = _audioCtx.currentTime;
+    // Three-note ascending chime: C5, E5, G5
+    var notes = [523, 659, 784];
+    notes.forEach(function(freq, i){
+      var osc = _audioCtx.createOscillator();
+      var gain = _audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      var t = now + i * 0.2;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.3, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      osc.start(t);
+      osc.stop(t + 0.65);
+    });
+  }catch(e){ console.warn('_playChimeNow error:', e); }
 }
 
 function sendDeviceNotification(name){
-  if('Notification' in window && Notification.permission === 'granted'){
-    try{
-      new Notification('GM Handover — Submission', {
-        body: name + ' has submitted their daily tasks ✅',
-        icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExNSIgZmlsbD0iIzE1ODAzZCIvPjx0ZXh0IHg9IjI1NiIgeT0iMzEwIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2siIGZvbnQtc2l6ZT0iMjIwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+R008L3RleHQ+PC9zdmc+',
-        tag: 'gmh-submission',
-        requireInteraction: false
-      });
-    }catch(e){}
-  }
+  if(typeof Notification === 'undefined') return;
+  if(Notification.permission !== 'granted') return;
+  try{
+    var n = new Notification('✅ GM Handover', {
+      body: name + ' has submitted their daily tasks',
+      icon: document.querySelector('link[rel="apple-touch-icon"]') ?
+            document.querySelector('link[rel="apple-touch-icon"]').href : '',
+      tag: 'gmh-sub-' + Date.now(),
+      silent: false
+    });
+    setTimeout(function(){ n.close(); }, 8000);
+  }catch(e){ console.warn('Notification error:', e); }
 }
 
 function watchSubmissions(){
@@ -915,7 +936,10 @@ function showSubmitNotif(name, ci){
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){ notif.classList.add('show'); });
   });
-  setTimeout(function(){ dismissNotif(notif.querySelector('.notif-close')); }, 10000);
+  setTimeout(function(){
+    var cl = notif.querySelector('.notif-close');
+    if(cl) dismissNotif(cl);
+  }, 10000);
 }
 
 function dismissNotif(btn){
