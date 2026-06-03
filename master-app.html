@@ -656,12 +656,21 @@ function drawSync(){
 
 // ── RESET ALL ─────────────────────────────────────────────────
 function resetAll(){
-  if(!confirm('Reset ALL task completions for today?'))return;
-  (state.names||[]).forEach(function(_,i){
-    dbSet('columns/'+i+'/tasks',null);
-    dbSet('columns/'+i+'/submitted',false);
+  if(!confirm('Reset ALL data for today?\n\nThis will clear for every colleague:\n• All ticked tasks\n• Areas worked\n• Notes\n• Before & After photos\n• Submission status\n\nThis cannot be undone.'))return;
+  var names=state.names||[];
+  names.forEach(function(_,i){
+    dbSet('columns/'+i, {
+      tasks: null,
+      areas: null,
+      notes: '',
+      photos: null,
+      photosBefore: null,
+      photosAfter: null,
+      submitted: false,
+      lastSubmit: null
+    });
   });
-  toast('↺ All columns reset');
+  toast('↺ All data reset for today');
 }
 
 // ── SCREENSHOT ────────────────────────────────────────────────
